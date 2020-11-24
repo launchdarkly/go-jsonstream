@@ -1,0 +1,52 @@
+# LaunchDarkly Streaming JSON for Go
+
+[![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Documentation](https://img.shields.io/static/v1?label=go.dev&message=reference&color=00add8)](https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1)
+
+## Overview
+
+The `go-jsonstream` library implements a streaming approach to JSON encoding and decoding which is more efficient than the standard mechanism in `encoding/json`. Unlike `encoding/json` or other reflection-based frameworks, it has no knowledge of structs or other complex types; you must explicitly tell it what values and properties to write or read. It was implemented for the [LaunchDarkly Go SDK](https://github.com/launchdarkly/go-server-sdk) and other LaunchDarkly Go components, but may be useful in other applications.
+
+There are three possible implementations, selectable via build tags:
+
+1. A default implementation that has no external dependencies, compatible with all platforms. This performs better than `encoding/json`, but not as well as the other two below.
+
+2. An implementation that uses the low-level tokenizing and output functions from the [easyjson](https://github.com/mailru/easyjson) library (but without the code generation mechanism that easyjson also provides), compatible with all platforms. This is used if you enable the build tags `launchdarkly_easyjson` and `easyjson_nounsafe`.
+
+3. The same easyjson implementation, but with more efficient string handling via the `unsafe` package. This is used if you enable the build tag `launchdarkly_easyjson`, but not `easyjson_nounsafe`.
+
+Although the easyjson implementations are the fastest, they are opt-in rather than being the default, for two reasons:
+
+* The `unsafe` package is not allowed in some environments, such as Google App Engine. And since easyjson makes this an opt-_out_ feature, having the LaunchDarkly Go SDK use this implementation would break the SDK for developers in those environments unless they explicitly set the `easyjson_nounsafe` tag. Therefore, we have made the easyjson implementation an opt-in feature, and developers who set the `launchdarkly_easyjson` tag can then decide whether or not to also set `easyjson_nounsafe`.
+
+* Although easyjson is widely used, at this time it does not have a stable 1.x version.
+
+The design of `go-jsonstream` allows encoding/decoding logic to be written against the same API without needing to know whether the easyjson implementation will be used at build time or not. There is an adapter (also conditionally compiled with the `launchdarkly_easyjson` tag) to allow `go-jsonstream` to plug directly into a `jlexer.Lexer` or `jwriter.Writer` that is being used to read or write some other type with easyjson.
+
+The unit tests for `go-streamstream` define a common test suite that is run against the default implementation and the easyjson implementation, to verify that their behavior is consistent across a large number of permutations of possible JSON inputs and outputs.
+
+## Supported Go versions
+
+This version of the project has been tested with Go 1.14 and higher.
+
+## Import path
+
+The base import path is `gopkg.in/launchdarkly/go-jsonstream.v1`, not `github.com/launchdarkly/go-jsonstream`. This ensures that the package can be referenced not only as a Go module, but also by projects that use older tools like `dep` and `govendor`, because current releases of the LaunchDarkly Go SDK support either module or non-module usage. Future releases of this package may drop support for non-module usage.
+
+## Contributing
+
+We encourage pull requests and other contributions from the community. Check out our [contributing guidelines](CONTRIBUTING.md) for instructions on how to contribute to this SDK.
+
+## About LaunchDarkly
+
+* LaunchDarkly is a continuous delivery platform that provides feature flags as a service and allows developers to iterate quickly and safely. We allow you to easily flag your features and manage them from the LaunchDarkly dashboard.  With LaunchDarkly, you can:
+    * Roll out a new feature to a subset of your users (like a group of users who opt-in to a beta tester group), gathering feedback and bug reports from real-world use cases.
+    * Gradually roll out a feature to an increasing percentage of users, and track the effect that the feature has on key metrics (for instance, how likely is a user to complete a purchase if they have feature A versus feature B?).
+    * Turn off a feature that you realize is causing performance problems in production, without needing to re-deploy, or even restart the application with a changed configuration file.
+    * Grant access to certain features based on user attributes, like payment plan (eg: users on the ‘gold’ plan get access to more features than users in the ‘silver’ plan). Disable parts of your application to facilitate maintenance, without taking everything offline.
+* LaunchDarkly provides feature flag SDKs for a wide variety of languages and technologies. Check out [our documentation](https://docs.launchdarkly.com/docs) for a complete list.
+* Explore LaunchDarkly
+    * [launchdarkly.com](https://www.launchdarkly.com/ "LaunchDarkly Main Website") for more information
+    * [docs.launchdarkly.com](https://docs.launchdarkly.com/  "LaunchDarkly Documentation") for our documentation and SDK reference guides
+    * [apidocs.launchdarkly.com](https://apidocs.launchdarkly.com/  "LaunchDarkly API Documentation") for our API documentation
+    * [blog.launchdarkly.com](https://blog.launchdarkly.com/  "LaunchDarkly Blog Documentation") for the latest product updates
+    * [Feature Flagging Guide](https://github.com/launchdarkly/featureflags/  "Feature Flagging Guide") for best practices and strategies
