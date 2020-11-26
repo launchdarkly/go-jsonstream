@@ -525,17 +525,6 @@ func readHexChar(reader *bytes.Reader) (rune, bool) {
 	return rune(n), true
 }
 
-func (r *tokenReader) errorOnNextTokenWhenExpectingType(valueKind ValueKind) error {
-	t, err := r.next()
-	if err != nil {
-		return err
-	}
-	if t.valueKind() >= 0 {
-		return TypeError{Expected: StringValue, Actual: t.valueKind(), Offset: r.LastPos()}
-	}
-	return SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: r.LastPos()}
-}
-
 func (r *tokenReader) syntaxErrorOnLastToken(msg string) error {
 	return SyntaxError{Message: msg, Offset: r.LastPos()}
 }

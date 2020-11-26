@@ -28,7 +28,7 @@ func TestStreamableBufferStreamingMode(t *testing.T) {
 		b.SetStreamingWriter(&target, 20)
 		expected := writeTestDataToBuffer(&b)
 		b.Flush()
-		assert.Equal(t, expected, string(target.Bytes()))
+		assert.Equal(t, expected, target.String())
 	})
 
 	t.Run("data is flushed incrementally", func(t *testing.T) {
@@ -40,21 +40,21 @@ func TestStreamableBufferStreamingMode(t *testing.T) {
 		assert.Len(t, target.Bytes(), 0)
 
 		b.WriteString("90")
-		assert.Equal(t, "1234567890", string(target.Bytes()))
+		assert.Equal(t, "1234567890", target.String())
 
 		b.WriteString("abcdefghijklm")
-		assert.Equal(t, "1234567890abcdefghijklm", string(target.Bytes()))
+		assert.Equal(t, "1234567890abcdefghijklm", target.String())
 
 		b.WriteString("nopqrstu")
-		assert.Equal(t, "1234567890abcdefghijklm", string(target.Bytes()))
+		assert.Equal(t, "1234567890abcdefghijklm", target.String())
 
 		b.WriteRune('v')
 		b.WriteByte('w')
-		assert.Equal(t, "1234567890abcdefghijklmnopqrstuvw", string(target.Bytes()))
+		assert.Equal(t, "1234567890abcdefghijklmnopqrstuvw", target.String())
 
 		b.WriteString("xyz")
 		b.Flush()
-		assert.Equal(t, "1234567890abcdefghijklmnopqrstuvwxyz", string(target.Bytes()))
+		assert.Equal(t, "1234567890abcdefghijklmnopqrstuvwxyz", target.String())
 	})
 }
 

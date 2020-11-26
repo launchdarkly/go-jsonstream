@@ -44,7 +44,7 @@ func (s WriterTestSuite) Run(t *testing.T) {
 					t.Logf("JSON output: `%s`", string(c.JSONData()))
 				}
 			})
-			td.action(c)
+			require.NoError(t, td.action(c))
 			output := string(c.JSONData())
 			require.Regexp(t, makeOutputRegex(td.encoding), output)
 		})

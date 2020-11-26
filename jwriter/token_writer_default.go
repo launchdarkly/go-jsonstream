@@ -19,9 +19,6 @@ var (
 	tokenNull  = []byte("null")  //nolint:gochecknoglobals
 	tokenTrue  = []byte("true")  //nolint:gochecknoglobals
 	tokenFalse = []byte("false") //nolint:gochecknoglobals
-	tokenZero  = []byte{'0'}     //nolint:gochecknoglobals
-	tokenQuote = []byte{'"'}     //nolint:gochecknoglobals
-	tokenColon = []byte{':'}     //nolint:gochecknoglobals
 )
 
 type tokenWriter struct {
@@ -81,7 +78,7 @@ func (tw *tokenWriter) Bool(value bool) error {
 // Int writes an integer JSON number.
 func (tw *tokenWriter) Int(value int) error {
 	if value == 0 {
-		tw.buf.Write(tokenZero)
+		tw.buf.WriteByte('0')
 	} else {
 		out := tw.tempBytes[0:0]
 		out = strconv.AppendInt(out, int64(value), 10)
@@ -93,7 +90,7 @@ func (tw *tokenWriter) Int(value int) error {
 // Float64 writes a JSON number.
 func (tw *tokenWriter) Float64(value float64) error {
 	if value == 0 {
-		tw.buf.Write(tokenZero)
+		tw.buf.WriteByte('0')
 	} else {
 		i := int(value)
 		if float64(i) == value {
@@ -122,7 +119,7 @@ func (tw *tokenWriter) PropertyName(name string) error {
 	if err := tw.String(name); err != nil {
 		return err
 	}
-	tw.buf.Write(tokenColon)
+	tw.buf.WriteByte(':')
 	return tw.buf.GetWriterError()
 }
 
