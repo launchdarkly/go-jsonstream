@@ -200,12 +200,14 @@ func (f testFactory) makeArrayTests() testDefs {
 			}
 			encoding = append(encoding, "]")
 			value := AnyValue{Kind: ArrayValue, Array: actions}
-			arrayTest := testDef{
-				name:     "array(" + strings.Join(names, ", ") + ")",
-				encoding: encoding,
-				action:   f.valueTestFactory.Value(value, ""),
+			for _, variant := range maybeVariants(f.valueTestFactory.Variants(value)) {
+				arrayTest := testDef{
+					name:     "array(" + strings.Join(names, ", ") + ")",
+					encoding: encoding,
+					action:   f.valueTestFactory.Value(value, variant),
+				}
+				ret = append(ret, arrayTest)
 			}
-			ret = append(ret, arrayTest)
 		}
 	}
 	return ret
@@ -231,12 +233,14 @@ func (f testFactory) makeObjectTests() testDefs {
 			}
 			encoding = append(encoding, "}")
 			value := AnyValue{Kind: ObjectValue, Object: propActions}
-			objectTest := testDef{
-				name:     "object(" + strings.Join(names, ", ") + ")",
-				encoding: encoding,
-				action:   f.valueTestFactory.Value(value, ""),
+			for _, variant := range maybeVariants(f.valueTestFactory.Variants(value)) {
+				objectTest := testDef{
+					name:     "object(" + strings.Join(names, ", ") + ")",
+					encoding: encoding,
+					action:   f.valueTestFactory.Value(value, variant),
+				}
+				ret = append(ret, objectTest)
 			}
-			ret = append(ret, objectTest)
 		}
 	}
 	return ret

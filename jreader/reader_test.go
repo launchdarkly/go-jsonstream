@@ -157,14 +157,14 @@ func (f readerValueTestFactory) Value(value commontest.AnyValue, variant commont
 			var arr ArrayState
 			if variant == nullableValue {
 				arr = r.ArrayOrNull()
-				if err := commontest.AssertTrue(arr.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
-					return err
-				}
 			} else {
 				arr = r.Array()
 			}
 			if r.Error() != nil {
 				return r.Error()
+			}
+			if err := commontest.AssertTrue(arr.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
+				return err
 			}
 			return assertReadArray(ctx, &arr, value)
 
@@ -172,14 +172,14 @@ func (f readerValueTestFactory) Value(value commontest.AnyValue, variant commont
 			var obj ObjectState
 			if variant == nullableValue {
 				obj = r.ObjectOrNull()
-				if err := commontest.AssertTrue(obj.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
-					return err
-				}
 			} else {
 				obj = r.Object()
 			}
 			if r.Error() != nil {
 				return r.Error()
+			}
+			if err := commontest.AssertTrue(obj.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
+				return err
 			}
 			return assertReadObject(ctx, &obj, value)
 		}

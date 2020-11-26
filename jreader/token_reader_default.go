@@ -116,7 +116,7 @@ func (r *tokenReader) Null() (bool, error) {
 		return true, nil
 	}
 	r.putBack(t)
-	if t.kind == delimiterToken {
+	if t.kind == delimiterToken && t.delimiter != '[' && t.delimiter != '{' {
 		return false, SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: r.getPos()}
 	}
 	return false, nil
