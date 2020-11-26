@@ -43,12 +43,6 @@ type ValueTestFactory interface {
 	Variants(value AnyValue) []ValueVariant
 }
 
-type ReadErrorTestFactory interface {
-	ExpectEOFError(err error) error
-	ExpectWrongTypeError(err error, expectedType ValueKind, variant ValueVariant, gotType ValueKind) error
-	ExpectSyntaxError(err error) error
-}
-
 type ValueKind int
 
 const (
