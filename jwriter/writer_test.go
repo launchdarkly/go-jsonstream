@@ -1,6 +1,9 @@
 package jwriter
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
@@ -42,6 +45,9 @@ func (f writerValueTestFactory) Variants(value commontest.AnyValue) []commontest
 	if value.Kind == commontest.NumberValue && float64(int(value.Number)) == value.Number {
 		return variantsForWritingNumbers
 	}
+	if value.Kind != commontest.ArrayValue && value.Kind != commontest.ObjectValue {
+		return variantsForScalarValues
+	}
 	return nil
 }
 
@@ -52,12 +58,24 @@ func (f writerValueTestFactory) Value(value commontest.AnyValue, variant commont
 
 		switch value.Kind {
 		case commontest.NullValue:
+			if variant == commontest.UntypedVariant {
+				w.Raw(json.RawMessage(`null`))
+				return w.Error()
+			}
 			w.Null()
 
 		case commontest.BoolValue:
+			if variant == commontest.UntypedVariant {
+				w.Raw(json.RawMessage(fmt.Sprintf("%t", value.Bool)))
+				return w.Error()
+			}
 			w.Bool(value.Bool)
 
 		case commontest.NumberValue:
+			if variant == commontest.UntypedVariant {
+				w.Raw(json.RawMessage(strconv.FormatFloat(value.Number, 'f', -1, 64)))
+				return w.Error()
+			}
 			if variant == writeNumberAsInt {
 				w.Int(int(value.Number))
 			} else {
@@ -65,6 +83,13 @@ func (f writerValueTestFactory) Value(value commontest.AnyValue, variant commont
 			}
 
 		case commontest.StringValue:
+			if variant == commontest.UntypedVariant {
+				// Use our own encoder to encode the string, but then write it with Raw()
+				tw1 := newTokenWriter()
+				_ = tw1.String(value.String)
+				w.Raw(json.RawMessage(tw1.Bytes()))
+				return w.Error()
+			}
 			w.String(value.String)
 
 		case commontest.ArrayValue:

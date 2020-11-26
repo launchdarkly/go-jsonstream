@@ -1,6 +1,9 @@
 package jwriter
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
 	"testing"
 
 	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
@@ -20,7 +23,10 @@ const (
 	writeNumberAsInt commontest.ValueVariant = "int:"
 )
 
-var variantsForWritingNumbers = []commontest.ValueVariant{"", writeNumberAsInt}
+var (
+	variantsForScalarValues   = []commontest.ValueVariant{"", commontest.UntypedVariant}
+	variantsForWritingNumbers = []commontest.ValueVariant{"", writeNumberAsInt, commontest.UntypedVariant}
+)
 
 type tokenWriterTestSuite struct {
 	Factory     func() (*tokenWriter, func() []byte)
@@ -63,6 +69,9 @@ func (f tokenWriterValueTestFactory) Variants(value commontest.AnyValue) []commo
 	if value.Kind == commontest.NumberValue && float64(int(value.Number)) == value.Number {
 		return variantsForWritingNumbers
 	}
+	if value.Kind != commontest.ArrayValue && value.Kind != commontest.ObjectValue {
+		return variantsForScalarValues
+	}
 	return nil
 }
 
@@ -73,12 +82,21 @@ func (f tokenWriterValueTestFactory) Value(value commontest.AnyValue, variant co
 
 		switch value.Kind {
 		case commontest.NullValue:
+			if variant == commontest.UntypedVariant {
+				return tw.Raw(json.RawMessage(`null`))
+			}
 			return tw.Null()
 
 		case commontest.BoolValue:
+			if variant == commontest.UntypedVariant {
+				return tw.Raw(json.RawMessage(fmt.Sprintf("%t", value.Bool)))
+			}
 			return tw.Bool(value.Bool)
 
 		case commontest.NumberValue:
+			if variant == commontest.UntypedVariant {
+				return tw.Raw(json.RawMessage(strconv.FormatFloat(value.Number, 'f', -1, 64)))
+			}
 			if variant == writeNumberAsInt {
 				return tw.Int(int(value.Number))
 			} else {
@@ -86,6 +104,12 @@ func (f tokenWriterValueTestFactory) Value(value commontest.AnyValue, variant co
 			}
 
 		case commontest.StringValue:
+			if variant == commontest.UntypedVariant {
+				// Use our own encoder to encode the string, but then write it with Raw()
+				tw1 := newTokenWriter()
+				_ = tw1.String(value.String)
+				return tw.Raw(json.RawMessage(tw1.Bytes()))
+			}
 			return tw.String(value.String)
 
 		case commontest.ArrayValue:

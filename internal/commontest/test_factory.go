@@ -59,15 +59,18 @@ func (f testFactory) MakeAllValueTests() testDefs {
 	return ret
 }
 
+func maybeVariants(vs []ValueVariant) []ValueVariant {
+	if len(vs) == 0 {
+		return []ValueVariant{""}
+	}
+	return vs
+}
+
 func (f testFactory) makeScalarValueTests(allPermutations bool) testDefs {
 	ret := testDefs{}
 	values := f.makeScalarValues(allPermutations)
-	oneVariant := []ValueVariant{""}
 	for _, tv := range values {
-		variants := f.valueTestFactory.Variants(tv.value)
-		if variants == nil {
-			variants = oneVariant
-		}
+		variants := maybeVariants(f.valueTestFactory.Variants(tv.value))
 		for _, variant := range variants {
 			name := tv.name
 			if variant != "" {

@@ -27,8 +27,9 @@ type PropertyAction struct {
 type ValueVariant string
 
 const (
-	// This variant means that the reader will try to consume a JSON value without regard to its type.
-	ReadAsAnyTypeVariant ValueVariant = "any:"
+	// This variant means that the reader will try to consume a JSON value without regard to its type,
+	// or the writer will write it as raw JSON data.
+	UntypedVariant ValueVariant = "any:"
 
 	// This variant means that the reader will try to recursively skip past a JSON value of any type.
 	SkipValueVariant ValueVariant = "skip:"
