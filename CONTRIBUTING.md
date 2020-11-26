@@ -38,12 +38,13 @@ make lint
 To build and run all unit tests, for the default implementation and also the easyjson implementation:
 ```
 make test
-BUILD_TAGS=launchdarkly_easyjson make test
+make test-easyjson
 ```
 
 To run benchmarks:
 ```
 make benchmarks
+make benchmarks-easyjson
 ```
 
 ## Coding best practices
