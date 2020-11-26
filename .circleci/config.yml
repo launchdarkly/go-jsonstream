@@ -92,7 +92,7 @@ jobs:
 
   go-test-windows:
     executor:
-      name: default
+      name: win/default
       shell: powershell.exe
 
     environment:
