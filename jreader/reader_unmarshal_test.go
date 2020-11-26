@@ -3,9 +3,9 @@ package jreader
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestUnmarshalJSONWithReader(t *testing.T) {
