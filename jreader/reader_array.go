@@ -1,17 +1,17 @@
 package jreader
 
-// ArrayState is returned by Reader's Array method. Use it in conjunction with Reader to iterate
-// through a JSON array. To read the value of each array element, you will still use the Reader's
-// methods.
+// ArrayState is returned by Reader's Array and ArrayOrNull methods. Use it in conjunction with
+// Reader to iterate through a JSON array. To read the value of each array element, you will still
+// use the Reader's methods.
 //
-// This example reads an array of strings. Note that it is not necessary to check the error value
-// from Array, or to break out of the loop if String fails, because the ArrayState's Next method
-// will return false if the Reader has had any errors.
+// This example reads an array of strings; if there is a null instead of an array, it behaves the
+// same as for an empty array. Note that it is not necessary to check for an error result before
+// iterating over the ArrayState, or to break out of the loop if String causes an error, because
+// the ArrayState's Next method will return false if the Reader has had any errors.
 //
 //     var values []string
-//     arr, _ := r.Array(false)
-//     for arr.Next() {
-//         if s, _, err := r.String(false); err == nil {
+//     for arr := r.ArrayOrNull(); arr.Next(); {
+//         if s := r.String(); r.Error() == nil {
 //             values = append(values, s)
 //         }
 //     }

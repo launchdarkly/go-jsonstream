@@ -69,5 +69,8 @@ func (k ValueKind) String() string {
 // Readable is an interface for types that can read their data from a Reader.
 type Readable interface {
 	// ReadFromJSONReader attempts to read the object's state from a Reader.
-	ReadFromJSONReader(*Reader) error
+	//
+	// This method does not need to return an error value because Reader remembers when it
+	// has encountered an error.
+	ReadFromJSONReader(*Reader)
 }

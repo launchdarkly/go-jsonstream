@@ -1,18 +1,18 @@
 package jreader
 
-// ObjectState is returned by Reader's Object method. Use it in conjunction with Reader to iterate
-// through a JSON object. To read the value of each object property, you will still use the Reader's
-// methods.
+// ObjectState is returned by Reader's Object and ObjectOrNull methods. Use it in conjunction with
+// Reader to iterate through a JSON object. To read the value of each object property, you will
+// still use the Reader's methods.
 //
-// This example reads an object whose values are strings. Note that it is not necessary to check the
-// error value from Object, or to break out of the loop if String fails, because the ObjectState's
-// Next method will return false if the Reader has had any errors.
+// This example reads an object whose values are strings; if there is a null instead of an object,
+// it behaves the same as for an empty object. Note that it is not necessary to check for an error
+// result before iterating over the ObjectState, or to break out of the loop if String causes an
+// error, because the ObjectState's Next method will return false if the Reader has had any errors.
 //
 //     values := map[string]string
-//     obj, _ := r.Object(false)
-//     for obj.Next() {
+//     for obj := r.ObjectOrNull(); obj.Next(); {
 //         key := string(obj.Name())
-//         if s, _, err := r.String(false); err == nil {
+//         if s := r.String(); r.Error() == nil {
 //             values[key] = s
 //         }
 //     }
@@ -24,13 +24,12 @@ package jreader
 //         a int
 //         b int
 //     }
-//     obj, _ := r.Object(false)
-//     for obj.Next() {
+//     for obj := r.ObjectOrNull(); obj.Next(); {
 //         switch string(obj.Name()) {
 //         case "a":
-//             result.a, _, _ = r.Int()
+//             result.a = r.Int()
 //         case "b":
-//             result.b, _, _ = r.Int()
+//             result.b = r.Int()
 //         }
 //     }
 type ObjectState struct {

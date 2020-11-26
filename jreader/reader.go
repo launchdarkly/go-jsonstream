@@ -8,7 +8,7 @@ package jreader
 // - Values are parsed in the order that they appear.
 //
 // - In general, the caller should know what data type is expected. Since it is common for
-// properties to be nullable, the methods for reading scalar types have an option for allowing
+// properties to be nullable, the methods for reading scalar types have variants for allowing
 // a null instead of the specified type. If the type is completely unknown, use Any.
 //
 // - For reading array or object structures, the Array and Object methods return a struct that
@@ -22,6 +22,22 @@ package jreader
 //
 // The underlying low-level stream reading and JSON tokenizing logic is abstracted out with the
 // TokenReader interface.
+//
+//     // This example reads a JSON object with two properties: a string and a bool
+//     r := NewReader([]byte(`{"s":"string value", "b":true}`))
+//     var stringValue string
+//     var boolValue bool
+//     for obj := r.Object(); obj.Next(); {
+//         switch string(obj.Name()) {
+//             case "s":
+//                 stringValue := r.String()
+//             case "b":
+//                 boolValue := r.Bool()
+//         }
+//     }
+//     if r.Error() != nil {
+//         // do whatever is appropriate if parsing failed at any point
+//     }
 type Reader struct {
 	tr                tokenReader
 	awaitingReadValue bool // used by ArrayState & ObjectState
@@ -64,166 +80,258 @@ func (r *Reader) Null() error {
 	return r.typeErrorForCurrentToken(NullValue, false)
 }
 
-// Bool attempts to read a boolean value. If allowNull is true, it allows the value to be null
-// instead; in the case of a null, the first and second return values are both false. If the value
-// is not null, the second return value is true.
-func (r *Reader) Bool(allowNull bool) (value bool, nonNull bool, err error) {
+// Bool attempts to read a boolean value.
+//
+// If there is a parsing error, or the next value is not a boolean, the return value is false
+// and the Reader enters a failed state, which you can detect with Error().
+func (r *Reader) Bool() bool {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return false, false, r.err
-	}
-	if allowNull {
-		isNull, err := r.tr.Null()
-		if isNull || err != nil {
-			return false, false, err
-		}
+		return false
 	}
 	val, err := r.tr.Bool()
 	if err != nil {
-		err = adjustTypeError(err, allowNull)
 		r.err = err
+		return false
 	}
-	return val, true, err
+	return val
 }
 
-// Int attempts to read a numeric value and returns it as an int. If allowNull is true, it allows
-// the value to be null instead; in the case of a null, the first return value is zero and the
-// second is false. If the value is not null, the second return value is true.
+// BoolOrNull attempts to read either a boolean value or a null. In the case of a boolean, the return
+// values are (value, true); for a null, they are (false, false).
 //
-// Types other than number and null will cause an error; they are not converted to numbers.
-func (r *Reader) Int(allowNull bool) (int, bool, error) {
+// If there is a parsing error, or the next value is neither a boolean nor a null, the return values
+// are (false, false) and the Reader enters a failed state, which you can detect with Error().
+func (r *Reader) BoolOrNull() (value bool, nonNull bool) {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return 0, false, r.err
+		return false, false
 	}
-	if allowNull {
-		isNull, err := r.tr.Null()
-		if isNull || err != nil {
-			return 0, false, err
-		}
+	isNull, err := r.tr.Null()
+	if isNull || err != nil {
+		r.err = err
+		return false, false
+	}
+	val, err := r.tr.Bool()
+	if err != nil {
+		r.err = typeErrorForNullableValue(err)
+		return false, false
+	}
+	return val, true
+}
+
+// Int attempts to read a numeric value and returns it as an int.
+//
+// If there is a parsing error, or the next value is not a number, the return value is zero and
+// the Reader enters a failed state, which you can detect with Error(). Non-numeric types are never
+// converted to numbers.
+func (r *Reader) Int() int {
+	return int(r.Float64())
+}
+
+// IntOrNull attempts to read either an integer numeric value or a null. In the case of a number, the
+// return values are (value, true); for a null, they are (0, false).
+//
+// If there is a parsing error, or the next value is neither a number nor a null, the return values
+// are (0, false) and the Reader enters a failed state, which you can detect with Error().
+func (r *Reader) IntOrNull() (int, bool) {
+	val, nonNull := r.Float64OrNull()
+	return int(val), nonNull
+}
+
+// Float64 attempts to read a numeric value and returns it as a float64.
+//
+// If there is a parsing error, or the next value is not a number, the return value is zero and
+// the Reader enters a failed state, which you can detect with Error(). Non-numeric types are never
+// converted to numbers.
+func (r *Reader) Float64() float64 {
+	r.awaitingReadValue = false
+	if r.err != nil {
+		return 0
 	}
 	val, err := r.tr.Number()
 	if err != nil {
-		err = adjustTypeError(err, allowNull)
 		r.err = err
+		return 0
 	}
-	return int(val), true, err
+	return val
 }
 
-// Float64 attempts to read a numeric value and returns it as a float64. If allowNull is true, it
-// allows the value to be null instead; in the case of a null, the first return value is zero and the
-// second is false. If the value is not null, the second return value is true.
+// Float64OrNull attempts to read either a numeric value or a null. In the case of a number, the
+// return values are (value, true); for a null, they are (0, false).
 //
-// Types other than number and null will cause an error; they are not converted to numbers.
-func (r *Reader) Float64(allowNull bool) (float64, bool, error) {
+// If there is a parsing error, or the next value is neither a number nor a null, the return values
+// are (0, false) and the Reader enters a failed state, which you can detect with Error().
+func (r *Reader) Float64OrNull() (float64, bool) {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return 0, false, r.err
+		return 0, false
 	}
-	if allowNull {
-		isNull, err := r.tr.Null()
-		if isNull || err != nil {
-			return 0, false, err
-		}
+	isNull, err := r.tr.Null()
+	if isNull || err != nil {
+		r.err = err
+		return 0, false
 	}
 	val, err := r.tr.Number()
 	if err != nil {
-		err = adjustTypeError(err, allowNull)
-		r.err = err
+		r.err = typeErrorForNullableValue(err)
+		return 0, false
 	}
-	return val, true, err
+	return val, true
 }
 
-// String attempts to read a string value. If allowNull is true, it allows the value to be null instead;
-// in the case of a null, the first return value is an empty string and the second is false. If the value
-// is not null, the second return value is true.
+// String attempts to read a string value.
 //
-// Types other than string and null will cause an error; they are not converted to strings.
-func (r *Reader) String(allowNull bool) (string, bool, error) {
+// If there is a parsing error, or the next value is not a string, the return value is "" and
+// the Reader enters a failed state, which you can detect with Error(). Types other than string
+// are never converted to strings.
+func (r *Reader) String() string {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return "", false, r.err
-	}
-	if allowNull {
-		isNull, err := r.tr.Null()
-		if isNull || err != nil {
-			return "", false, err
-		}
+		return ""
 	}
 	val, err := r.tr.String()
 	if err != nil {
-		err = adjustTypeError(err, allowNull)
 		r.err = err
+		return ""
 	}
-	return val, true, err
-
+	return val
 }
 
-// Array attempts to begin reading an JSON array value. If allowNull is true, it allows the value to
-// be null instead; in the case of a null, the ArrayState's IsDefined method will return false and it
-// will behave as an empty array in all other ways. Types other than array and null will cause an error.
+// StringOrNull attempts to read either a string value or a null. In the case of a string, the
+// return values are (value, true); for a null, they are ("", false).
 //
-// The ArrayState is used only for advancing to the next item, and contains the necessary state for
-// keeping track of this (such as expecting a comma expected before each item except the first). To
-// read the value of each array element, you will still use the Reader's methods.
-//
-// See ArrayState for example code.
-func (r *Reader) Array(allowNull bool) (ArrayState, error) {
+// If there is a parsing error, or the next value is neither a string nor a null, the return values
+// are ("", false) and the Reader enters a failed state, which you can detect with Error().
+func (r *Reader) StringOrNull() (string, bool) {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return ArrayState{}, r.err
+		return "", false
+	}
+	isNull, err := r.tr.Null()
+	if isNull || err != nil {
+		r.err = err
+		return "", false
+	}
+	val, err := r.tr.String()
+	if err != nil {
+		r.err = typeErrorForNullableValue(err)
+		return "", false
+	}
+	return val, true
+}
+
+// Array attempts to begin reading a JSON array value. If successful, the return value will be an
+// ArrayState containing the necessary state for iterating through the array elements.
+//
+// The ArrayState is used only for the iteration state; to read the value of each array element, you
+// will still use the Reader's methods.
+//
+// If there is a parsing error, or the next value is not an array, the returned ArrayState is a stub
+// whose Next() method always returns false, and the Reader enters a failed state, which you can
+// detect with Error().
+//
+// See ArrayState for example code.
+func (r *Reader) Array() ArrayState {
+	return r.tryArray(false)
+}
+
+// ArrayOrNull attempts to either begin reading an JSON array value, or read a null. In the case of an
+// array, the return value will be an ArrayState containing the necessary state for iterating through
+// the array elements; the ArrayState's IsDefined() method will return true. In the case of a null, the
+// returned ArrayState will be a stub whose Next() and IsDefined() methods always returns false.
+//
+// The ArrayState is used only for the iteration state; to read the value of each array element, you
+// will still use the Reader's methods.
+//
+// If there is a parsing error, or the next value is neither an array nor a null, the return value is
+// the same as for a null but the Reader enters a failed state, which you can detect with Error().
+//
+// See ArrayState for example code.
+func (r *Reader) ArrayOrNull() ArrayState {
+	return r.tryArray(true)
+}
+
+func (r *Reader) tryArray(allowNull bool) ArrayState {
+	r.awaitingReadValue = false
+	if r.err != nil {
+		return ArrayState{}
 	}
 	if allowNull {
 		isNull, err := r.tr.Null()
 		if err != nil {
-			return ArrayState{}, err
+			r.err = err
+			return ArrayState{}
 		}
 		if isNull {
-			return ArrayState{}, nil
+			return ArrayState{}
 		}
 	}
 	gotDelim, err := r.tr.Delimiter('[')
 	if err != nil {
-		return ArrayState{}, err
+		r.err = err
+		return ArrayState{}
 	}
 	if gotDelim {
-		return ArrayState{r: r}, nil
+		return ArrayState{r: r}
 	}
-	return ArrayState{}, r.typeErrorForCurrentToken(ArrayValue, allowNull)
+	r.err = r.typeErrorForCurrentToken(ArrayValue, allowNull)
+	return ArrayState{}
 }
 
-// Object attempts to begin reading an JSON object value. If allowNull is true, it allows the value to
-// be null instead; in the case of a null, the ObjectState's IsDefined method will return true and it
-// will behave as an empty object in all other ways. Types other than object and null will cause an error.
+// Object attempts to begin reading a JSON object value. If successful, the return value will be an
+// ObjectState containing the necessary state for iterating through the object properties.
 //
-// The ObjectState is used only for advancing to the next item, and contains the necessary state for
-// keeping track of this (such as expecting a comma before each item except the first, and keeping
-// track of the current property name). To read the value of each property, you will still use the
-// Reader's methods.
+// The ObjectState is used only for the iteration state; to read the value of each property, you
+// will still use the Reader's methods.
+//
+// If there is a parsing error, or the next value is not an object, the returned ObjectState is a stub
+// whose Next() method always returns false, and the Reader enters a failed state, which you can
+// detect with Error().
 //
 // See ObjectState for example code.
-func (r *Reader) Object(allowNull bool) (ObjectState, error) {
+func (r *Reader) Object() ObjectState {
+	return r.tryObject(false)
+}
+
+// ObjectOrNull attempts to either begin reading an JSON object value, or read a null. In the case of an
+// object, the return value will be an ObjectState containing the necessary state for iterating through
+// the object properties; the ObjectState's IsDefined() method will return true. In the case of a null,
+// the returned ObjectState will be a stub whose Next() and IsDefined() methods always returns false.
+//
+// The ObjectState is used only for the iteration state; to read the value of each property, you
+// will still use the Reader's methods.
+//
+// If there is a parsing error, or the next value is neither an object nor a null, the return value is
+// the same as for a null but the Reader enters a failed state, which you can detect with Error().
+//
+// See ObjectState for example code.
+func (r *Reader) ObjectOrNull() ObjectState {
+	return r.tryObject(true)
+}
+
+func (r *Reader) tryObject(allowNull bool) ObjectState {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return ObjectState{}, r.err
+		return ObjectState{}
 	}
 	if allowNull {
 		isNull, err := r.tr.Null()
-		if err != nil {
-			return ObjectState{}, err
-		}
-		if isNull {
-			return ObjectState{}, nil
+		if err != nil || isNull {
+			r.err = err
+			return ObjectState{}
 		}
 	}
 	gotDelim, err := r.tr.Delimiter('{')
 	if err != nil {
-		return ObjectState{}, err
+		r.err = err
+		return ObjectState{}
 	}
 	if gotDelim {
-		return ObjectState{r: r}, nil
+		return ObjectState{r: r}
 	}
-	return ObjectState{}, r.typeErrorForCurrentToken(ObjectValue, allowNull)
+	r.err = r.typeErrorForCurrentToken(ObjectValue, allowNull)
+	return ObjectState{}
 }
 
 // Any reads a single value of any type, if it is a scalar value or a null, or prepares to read
@@ -233,29 +341,32 @@ func (r *Reader) Object(allowNull bool) (ObjectState, error) {
 // or StringValue, check the corresponding Bool, Number, or String property. If it is ArrayValue
 // or ObjectValue, the AnyValue's Array or Object field has been initialized with an ArrayState or
 // ObjectState just as if you had called the Reader's Array or Object method.
-func (r *Reader) Any() (AnyValue, error) {
+//
+// If there is a parsing error, the return value is the same as for a null and the Reader enters
+// a failed state, which you can detect with Error().
+func (r *Reader) Any() AnyValue {
 	r.awaitingReadValue = false
 	if r.err != nil {
-		return AnyValue{}, r.err
+		return AnyValue{}
 	}
 	v, err := r.tr.Any()
 	if err != nil {
 		r.err = err
-		return AnyValue{}, err
+		return AnyValue{}
 	}
 	switch v.Kind {
 	case BoolValue:
-		return AnyValue{Kind: v.Kind, Bool: v.Bool}, nil
+		return AnyValue{Kind: v.Kind, Bool: v.Bool}
 	case NumberValue:
-		return AnyValue{Kind: v.Kind, Number: v.Number}, nil
+		return AnyValue{Kind: v.Kind, Number: v.Number}
 	case StringValue:
-		return AnyValue{Kind: v.Kind, String: v.String}, nil
+		return AnyValue{Kind: v.Kind, String: v.String}
 	case ArrayValue:
-		return AnyValue{Kind: v.Kind, Array: ArrayState{r: r}}, nil
+		return AnyValue{Kind: v.Kind, Array: ArrayState{r: r}}
 	case ObjectValue:
-		return AnyValue{Kind: v.Kind, Object: ObjectState{r: r}}, nil
+		return AnyValue{Kind: v.Kind, Object: ObjectState{r: r}}
 	default:
-		return AnyValue{Kind: NullValue}, nil
+		return AnyValue{Kind: NullValue}
 	}
 }
 
@@ -266,11 +377,7 @@ func (r *Reader) SkipValue() error {
 	if r.err != nil {
 		return r.err
 	}
-	v, err := r.Any()
-	if err != nil {
-		r.err = err
-		return err
-	}
+	v := r.Any()
 	if v.Kind == ArrayValue {
 		for v.Array.Next() {
 		}
@@ -281,11 +388,11 @@ func (r *Reader) SkipValue() error {
 	return r.err
 }
 
-func adjustTypeError(err error, nullable bool) error {
+func typeErrorForNullableValue(err error) error {
 	if err != nil {
 		switch e := err.(type) {
 		case TypeError:
-			e.Nullable = nullable
+			e.Nullable = true
 			return e
 		}
 	}

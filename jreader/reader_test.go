@@ -101,48 +101,85 @@ func (f readerValueTestFactory) Value(value commontest.AnyValue, variant commont
 			return assertReadAnyValue(ctx, r, value)
 		}
 
-		allowNull := variant == nullableValue || variant == nullableNumberAsInt
-
 		switch value.Kind {
 		case commontest.NullValue:
 			return assertReadNull(r, variant)
 
 		case commontest.BoolValue:
-			gotVal, nonNull, err := r.Bool(allowNull)
-			return commontest.AssertNoErrors(err,
-				commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
-				commontest.AssertEqual(value.Bool, gotVal))
+			switch variant {
+			case nullableValue:
+				gotVal, nonNull := r.BoolOrNull()
+				return commontest.AssertNoErrors(r.Error(),
+					commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
+					commontest.AssertEqual(value.Bool, gotVal))
+			default:
+				gotVal := r.Bool()
+				return commontest.AssertNoErrors(r.Error(),
+					commontest.AssertEqual(value.Bool, gotVal))
+			}
 
 		case commontest.NumberValue:
-			if variant == numberAsInt || variant == nullableNumberAsInt {
-				gotVal, nonNull, err := r.Int(allowNull)
-				return commontest.AssertNoErrors(err,
+			switch variant {
+			case nullableNumberAsInt:
+				gotVal, nonNull := r.IntOrNull()
+				return commontest.AssertNoErrors(r.Error(),
 					commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
 					commontest.AssertEqual(int(value.Number), gotVal))
-			} else {
-				gotVal, nonNull, err := r.Float64(allowNull)
-				return commontest.AssertNoErrors(err,
+			case numberAsInt:
+				gotVal := r.Int()
+				return commontest.AssertNoErrors(r.Error(),
+					commontest.AssertEqual(int(value.Number), gotVal))
+			case nullableValue:
+				gotVal, nonNull := r.Float64OrNull()
+				return commontest.AssertNoErrors(r.Error(),
 					commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
+					commontest.AssertEqual(value.Number, gotVal))
+			default:
+				gotVal := r.Float64()
+				return commontest.AssertNoErrors(r.Error(),
 					commontest.AssertEqual(value.Number, gotVal))
 			}
 
 		case commontest.StringValue:
-			gotVal, nonNull, err := r.String(allowNull)
-			return commontest.AssertNoErrors(err,
-				commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
-				commontest.AssertEqual(value.String, gotVal))
+			switch variant {
+			case nullableValue:
+				gotVal, nonNull := r.StringOrNull()
+				return commontest.AssertNoErrors(r.Error(),
+					commontest.AssertTrue(nonNull, shouldNotHaveBeenNullError.Error()),
+					commontest.AssertEqual(value.String, gotVal))
+			default:
+				gotVal := r.String()
+				return commontest.AssertNoErrors(r.Error(),
+					commontest.AssertEqual(value.String, gotVal))
+			}
 
 		case commontest.ArrayValue:
-			arr, err := r.Array(allowNull)
-			if err != nil {
-				return err
+			var arr ArrayState
+			if variant == nullableValue {
+				arr = r.ArrayOrNull()
+				if err := commontest.AssertTrue(arr.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
+					return err
+				}
+			} else {
+				arr = r.Array()
+			}
+			if r.Error() != nil {
+				return r.Error()
 			}
 			return assertReadArray(ctx, &arr, value)
 
 		case commontest.ObjectValue:
-			obj, err := r.Object(allowNull)
-			if err != nil {
-				return err
+			var obj ObjectState
+			if variant == nullableValue {
+				obj = r.ObjectOrNull()
+				if err := commontest.AssertTrue(obj.IsDefined(), shouldNotHaveBeenNullError.Error()); err != nil {
+					return err
+				}
+			} else {
+				obj = r.Object()
+			}
+			if r.Error() != nil {
+				return r.Error()
 			}
 			return assertReadObject(ctx, &obj, value)
 		}
@@ -153,45 +190,43 @@ func (f readerValueTestFactory) Value(value commontest.AnyValue, variant commont
 func assertReadNull(r *Reader, variant commontest.ValueVariant) error {
 	var gotVal, expectVal interface{}
 	var nonNull bool
-	var err error
 	switch variant {
 	case defaultVariant:
 		return r.Null()
 	case nullableBoolIsNull:
-		gotVal, nonNull, err = r.Bool(true)
+		gotVal, nonNull = r.BoolOrNull()
 		expectVal = false
 	case nullableIntIsNull:
-		gotVal, nonNull, err = r.Int(true)
+		gotVal, nonNull = r.IntOrNull()
 		expectVal = 0
 	case nullableFloatIsNull:
-		gotVal, nonNull, err = r.Float64(true)
+		gotVal, nonNull = r.Float64OrNull()
 		expectVal = float64(0)
 	case nullableStringIsNull:
-		gotVal, nonNull, err = r.String(true)
+		gotVal, nonNull = r.StringOrNull()
 		expectVal = ""
 	case nullableArrayIsNull:
-		arr, err := r.Array(true)
-		if err != nil {
-			return err
+		arr := r.ArrayOrNull()
+		if r.Error() != nil {
+			return r.Error()
 		}
 		if arr.IsDefined() {
 			return TypeError{Expected: NullValue, Actual: ArrayValue}
 		}
 		return nil
 	case nullableObjectIsNull:
-		obj, err := r.Object(true)
-		if err != nil {
-			return err
+		obj := r.ObjectOrNull()
+		if r.Error() != nil {
+			return r.Error()
 		}
 		if obj.IsDefined() {
 			return TypeError{Expected: NullValue, Actual: ObjectValue}
 		}
 		return nil
 	}
-	if err != nil {
-		return err
-	}
-	return commontest.AssertNoErrors(commontest.AssertTrue(!nonNull, shouldHaveBeenNullError.Error()),
+	return commontest.AssertNoErrors(
+		r.Error(),
+		commontest.AssertTrue(!nonNull, shouldHaveBeenNullError.Error()),
 		commontest.AssertEqual(expectVal, gotVal))
 }
 
@@ -229,9 +264,9 @@ func assertReadObject(ctx *readerTestContext, obj *ObjectState, value commontest
 }
 
 func assertReadAnyValue(ctx *readerTestContext, r *Reader, value commontest.AnyValue) error {
-	av, err := r.Any()
-	if err != nil {
-		return err
+	av := r.Any()
+	if r.Error() != nil {
+		return r.Error()
 	}
 
 	switch value.Kind {
@@ -319,19 +354,19 @@ func TestReaderSkipValue(t *testing.T) {
 	t.Run("Next() skips array element if it was not read", func(t *testing.T) {
 		data := []byte(`["a", ["b1", "b2"], "c"]`)
 		r := NewReader(data)
-		arr, err := r.Array(false)
-		require.NoError(t, err)
+		arr := r.Array()
+		require.NoError(t, r.Error())
 
 		require.True(t, arr.Next())
-		val1, _, err := r.String(false)
-		require.NoError(t, err)
+		val1 := r.String()
+		require.NoError(t, r.Error())
 		require.Equal(t, "a", val1)
 
 		require.True(t, arr.Next())
 
 		require.True(t, arr.Next())
-		val3, _, err := r.String(false)
-		require.NoError(t, err)
+		val3 := r.String()
+		require.NoError(t, r.Error())
 		require.Equal(t, "c", val3)
 
 		require.False(t, arr.Next())
@@ -340,21 +375,21 @@ func TestReaderSkipValue(t *testing.T) {
 	t.Run("Next() skips property value if it was not read", func(t *testing.T) {
 		data := []byte(`{"a":1, "b":{"b1":2, "b2":3}, "c":4}`)
 		r := NewReader(data)
-		obj, err := r.Object(false)
-		require.NoError(t, err)
+		obj := r.Object()
+		require.NoError(t, r.Error())
 
 		require.True(t, obj.Next())
 		require.Equal(t, "a", string(obj.Name()))
-		val1, _, err := r.Int(false)
-		require.NoError(t, err)
+		val1 := r.Int()
+		require.NoError(t, r.Error())
 		require.Equal(t, 1, val1)
 
 		require.True(t, obj.Next())
 
 		require.True(t, obj.Next())
 		require.Equal(t, "c", string(obj.Name()))
-		val3, _, err := r.Int(false)
-		require.NoError(t, err)
+		val3 := r.Int()
+		require.NoError(t, r.Error())
 		require.Equal(t, 4, val3)
 
 		require.False(t, obj.Next())

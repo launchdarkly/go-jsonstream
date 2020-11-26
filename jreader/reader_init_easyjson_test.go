@@ -23,12 +23,12 @@ func TestNewReaderFromEasyjsonLexer(t *testing.T) {
 
 	// Now pick up where we left off and use the Reader to parse {"property":2}
 	reader := NewReaderFromEasyjsonLexer(&lexer)
-	obj, err := reader.Object(false)
-	require.NoError(t, err)
+	obj := reader.Object()
+	require.NoError(t, reader.Error())
 	require.True(t, obj.Next())
 	require.Equal(t, "property", string(obj.Name()))
-	n, _, err = reader.Int(false)
-	require.NoError(t, err)
+	n = reader.Int()
+	require.NoError(t, reader.Error())
 	require.Equal(t, 2, n)
 	require.False(t, obj.Next())
 

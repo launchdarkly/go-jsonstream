@@ -22,8 +22,8 @@ func BenchmarkReadBooleanNoAlloc(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(data)
-		val, _, err := r.Bool(false)
-		if !val || err != nil {
+		val := r.Bool()
+		if !val || r.Error() != nil {
 			b.FailNow()
 		}
 	}
@@ -34,8 +34,9 @@ func BenchmarkReadNumberIntNoAlloc(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(data)
-		val, _, err := r.Int(false)
-		if val != 1234 || err != nil {
+		val := r.Int()
+		failBenchmarkOnReaderError(b, &r)
+		if val != 1234 {
 			b.FailNow()
 		}
 	}
@@ -46,8 +47,9 @@ func BenchmarkReadNumberFloat(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(data)
-		val, _, err := r.Float64(false)
-		if val != 1234.5 || err != nil {
+		val := r.Float64()
+		failBenchmarkOnReaderError(b, &r)
+		if val != 1234.5 {
 			b.FailNow()
 		}
 	}
@@ -58,8 +60,9 @@ func BenchmarkReadString(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(data)
-		val, _, err := r.String(false)
-		if val != "abc" || err != nil {
+		val := r.String()
+		failBenchmarkOnReaderError(b, &r)
+		if val != "abc" {
 			b.FailNow()
 		}
 	}
@@ -72,17 +75,11 @@ func BenchmarkReadArrayOfBools(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var vals []bool
 		r := NewReader(data)
-		arr, err := r.Array(false)
-		if err != nil {
-			b.Error(err)
-			b.FailNow()
-		}
+		arr := r.Array()
+		failBenchmarkOnReaderError(b, &r)
 		for arr.Next() {
-			val, _, err := r.Bool(false)
-			if err != nil {
-				b.Error(err)
-				b.FailNow()
-			}
+			val := r.Bool()
+			failBenchmarkOnReaderError(b, &r)
 			vals = append(vals, val)
 		}
 		if len(vals) < len(expected) {
@@ -98,17 +95,11 @@ func BenchmarkReadArrayOfStrings(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var vals []string
 		r := NewReader(data)
-		arr, err := r.Array(false)
-		if err != nil {
-			b.Error(err)
-			b.FailNow()
-		}
+		arr := r.Array()
+		failBenchmarkOnReaderError(b, &r)
 		for arr.Next() {
-			val, _, err := r.String(false)
-			if err != nil {
-				b.Error(err)
-				b.FailNow()
-			}
+			val := r.String()
+			failBenchmarkOnReaderError(b, &r)
 			vals = append(vals, val)
 		}
 		if len(vals) < len(expected) {
@@ -123,10 +114,8 @@ func BenchmarkReadArrayOfNullsNoAlloc(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(data)
-		arr, err := r.Array(false)
-		if err != nil {
-			b.FailNow()
-		}
+		arr := r.Array()
+		failBenchmarkOnReaderError(b, &r)
 		if !arr.Next() {
 			b.FailNow()
 		}
@@ -136,9 +125,7 @@ func BenchmarkReadArrayOfNullsNoAlloc(b *testing.B) {
 		if !arr.Next() {
 			b.FailNow()
 		}
-		if err := r.Null(); err != nil {
-			b.FailNow()
-		}
+		failBenchmarkOnReaderError(b, &r)
 		if arr.Next() {
 			b.FailNow()
 		}
@@ -149,13 +136,17 @@ func BenchmarkReadObjectNoAlloc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var val ExampleStructWrapper
 		r := NewReader(commontest.ExampleStructData)
-		err := val.ReadFromJSONReader(&r)
-		if err != nil {
-			b.Error(err)
-			b.FailNow()
-		}
+		val.ReadFromJSONReader(&r)
+		failBenchmarkOnReaderError(b, &r)
 		if val != ExampleStructWrapper(commontest.ExampleStructValue) {
 			b.FailNow()
 		}
+	}
+}
+
+func failBenchmarkOnReaderError(b *testing.B, r *Reader) {
+	if r.Error() != nil {
+		b.Error(r.Error())
+		b.FailNow()
 	}
 }

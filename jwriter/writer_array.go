@@ -7,6 +7,7 @@ type ArrayState struct {
 	hasItems bool
 }
 
+// Next prepares to write the next array item. You can then use Writer methods to write the value.
 func (arr *ArrayState) Next() {
 	if arr.w == nil || arr.w.err != nil {
 		return
@@ -20,6 +21,65 @@ func (arr *ArrayState) Next() {
 	}
 }
 
+// Bool is a shortcut for calling Next() followed by writer.Null().
+func (arr *ArrayState) Null() {
+	if arr.w != nil {
+		arr.Next()
+		arr.w.Null()
+	}
+}
+
+// Bool is a shortcut for calling Next() followed by writer.Bool(value).
+func (arr *ArrayState) Bool(value bool) {
+	if arr.w != nil {
+		arr.Next()
+		arr.w.Bool(value)
+	}
+}
+
+// Int is a shortcut for calling Next() followed by writer.Int(value).
+func (arr *ArrayState) Int(value int) {
+	if arr.w != nil {
+		arr.Next()
+		arr.w.Int(value)
+	}
+}
+
+// Float64 is a shortcut for calling Next() followed by writer.Float64(value).
+func (arr *ArrayState) Float64(value float64) {
+	if arr.w != nil {
+		arr.Next()
+		arr.w.Float64(value)
+	}
+}
+
+// String is a shortcut for calling Next() followed by writer.String(value).
+func (arr *ArrayState) String(value string) {
+	if arr.w != nil {
+		arr.Next()
+		arr.w.String(value)
+	}
+}
+
+// Array is a shortcut for calling Next() followed by writer.Array(), to create a nested array.
+func (arr *ArrayState) Array() ArrayState {
+	if arr.w != nil {
+		arr.Next()
+		return arr.w.Array()
+	}
+	return ArrayState{}
+}
+
+// Object is a shortcut for calling Next() followed by writer.Object(), to create a nested object.
+func (arr *ArrayState) Object() ObjectState {
+	if arr.w != nil {
+		arr.Next()
+		return arr.w.Object()
+	}
+	return ObjectState{}
+}
+
+// End writes the closing delimiter of the array.
 func (arr *ArrayState) End() {
 	if arr.w == nil || arr.w.err != nil {
 		return
@@ -27,87 +87,3 @@ func (arr *ArrayState) End() {
 	arr.w.AddError(arr.w.tw.Delimiter(']'))
 	arr.w = nil
 }
-
-// func (aw *ArrayWriter) beforeValue() bool {
-// 	if aw.w == nil || aw.w.err != nil {
-// 		return false
-// 	}
-// 	if aw.hasItems {
-// 		if err := aw.w.tw.Delimiter(','); err != nil {
-// 			aw.w.AddError(err)
-// 			return false
-// 		}
-// 	}
-// 	aw.hasItems = true
-// 	return true
-// }
-
-// func (aw *ArrayWriter) End() {
-// 	if aw.w != nil {
-// 		aw.w.AddError(aw.w.tw.Delimiter(']'))
-// 		aw.w = nil
-// 	}
-// }
-
-// func (aw *ArrayWriter) Error() error {
-// 	if aw.w == nil {
-// 		return nil
-// 	}
-// 	return aw.w.Error()
-// }
-
-// func (aw *ArrayWriter) AddError(err error) {
-// 	if aw.w != nil {
-// 		aw.w.AddError(err)
-// 	}
-// }
-
-// func (aw *ArrayWriter) Null() {
-// 	if aw.beforeValue() {
-// 		aw.w.Null()
-// 	}
-// }
-
-// func (aw *ArrayWriter) Bool(value bool) {
-// 	if aw.beforeValue() {
-// 		aw.w.Bool(value)
-// 	}
-// }
-
-// func (aw *ArrayWriter) Int(value int) {
-// 	if aw.beforeValue() {
-// 		aw.w.Int(value)
-// 	}
-// }
-
-// func (aw *ArrayWriter) Float64(value float64) {
-// 	if aw.beforeValue() {
-// 		aw.w.Float64(value)
-// 	}
-// }
-
-// func (aw *ArrayWriter) String(value string) {
-// 	if aw.beforeValue() {
-// 		aw.w.String(value)
-// 	}
-// }
-
-// func (aw *ArrayWriter) Raw(value json.RawMessage) {
-// 	if aw.beforeValue() {
-// 		aw.w.Raw(value)
-// 	}
-// }
-
-// func (aw *ArrayWriter) Array() ArrayWriter {
-// 	if aw.beforeValue() {
-// 		return aw.w.Array()
-// 	}
-// 	return ArrayWriter{}
-// }
-
-// func (aw *ArrayWriter) Object() ObjectWriter {
-// 	if aw.beforeValue() {
-// 		return aw.w.Object()
-// 	}
-// 	return ObjectWriter{}
-// }

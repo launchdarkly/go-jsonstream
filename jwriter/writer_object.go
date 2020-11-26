@@ -7,6 +7,8 @@ type ObjectState struct {
 	hasItems bool
 }
 
+// Property writes an object property name and a colon. You can then use Writer methods to write
+// the property value.
 func (obj *ObjectState) Property(name string) {
 	if obj.w == nil || obj.w.err != nil {
 		return
@@ -21,6 +23,93 @@ func (obj *ObjectState) Property(name string) {
 	obj.w.AddError(obj.w.tw.PropertyName(name))
 }
 
+// Null is a shortcut for calling Property(name) followed by writer.Null().
+func (obj *ObjectState) Null(name string) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.Null()
+	}
+}
+
+// Bool is a shortcut for calling Property(name) followed by writer.Bool(value).
+func (obj *ObjectState) Bool(name string, value bool) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.Bool(value)
+	}
+}
+
+// Int is a shortcut for calling Property(name) followed by writer.Int(value).
+func (obj *ObjectState) Int(name string, value int) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.Int(value)
+	}
+}
+
+// Float64 is a shortcut for calling Property(name) followed by writer.Float64(value).
+func (obj *ObjectState) Float64(name string, value float64) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.Float64(value)
+	}
+}
+
+// String is a shortcut for calling Property(name) followed by writer.String(value).
+func (obj *ObjectState) String(name string, value string) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.String(value)
+	}
+}
+
+// OptBool is a shortcut for calling Bool(name, value) if isDefined is true.
+func (obj *ObjectState) OptBool(name string, isDefined bool, value bool) {
+	if isDefined {
+		obj.Bool(name, value)
+	}
+}
+
+// OptInt is a shortcut for calling Int(name, value) if isDefined is true.
+func (obj *ObjectState) OptInt(name string, isDefined bool, value int) {
+	if isDefined {
+		obj.Int(name, value)
+	}
+}
+
+// OptFloat64 is a shortcut for calling Float64(name, value) if isDefined is true.
+func (obj *ObjectState) OptFloat64(name string, isDefined bool, value float64) {
+	if isDefined {
+		obj.Float64(name, value)
+	}
+}
+
+// OptString is a shortcut for calling String(name, value) if isDefined is true.
+func (obj *ObjectState) OptString(name string, isDefined bool, value string) {
+	if isDefined {
+		obj.String(name, value)
+	}
+}
+
+// Array is a shortcut for calling Property(name) followed by writer.Array(), to create a nested array.
+func (obj *ObjectState) Array(name string) ArrayState {
+	if obj.w != nil {
+		obj.Property(name)
+		return obj.w.Array()
+	}
+	return ArrayState{}
+}
+
+// Object is a shortcut for calling Property(name) followed by writer.Object(), to create a nested object.
+func (obj *ObjectState) Object(name string) ObjectState {
+	if obj.w != nil {
+		obj.Property(name)
+		return obj.w.Object()
+	}
+	return ObjectState{}
+}
+
+// End writes the closing delimiter of the object.
 func (obj *ObjectState) End() {
 	if obj.w == nil || obj.w.err != nil {
 		return
@@ -28,94 +117,3 @@ func (obj *ObjectState) End() {
 	obj.w.AddError(obj.w.tw.Delimiter('}'))
 	obj.w = nil
 }
-
-// func (ow *ObjectWriter) beforeValue() bool {
-// 	if ow.w == nil || ow.w.err != nil || ow.propName == "" {
-// 		return false
-// 	}
-// 	if ow.hasItems {
-// 		if err := ow.w.tw.Delimiter(','); err != nil {
-// 			ow.w.AddError(err)
-// 			return false
-// 		}
-// 	}
-// 	ow.hasItems = true
-// 	ow.w.AddError(ow.w.tw.PropertyName(ow.propName))
-// 	ow.propName = ""
-// 	return true
-// }
-
-// func (ow *ObjectWriter) Property(name string) *ObjectWriter {
-// 	ow.propName = name
-// 	return ow
-// }
-
-// func (ow *ObjectWriter) End() {
-// 	if ow.w != nil {
-// 		ow.w.AddError(ow.w.tw.Delimiter('}'))
-// 		ow.w = nil
-// 	}
-// }
-
-// func (ow *ObjectWriter) Error() error {
-// 	if ow.w == nil {
-// 		return nil
-// 	}
-// 	return ow.w.Error()
-// }
-
-// func (ow *ObjectWriter) AddError(err error) {
-// 	if ow.w != nil {
-// 		ow.w.AddError(err)
-// 	}
-// }
-
-// func (ow *ObjectWriter) Null() {
-// 	if ow.beforeValue() {
-// 		ow.w.Null()
-// 	}
-// }
-
-// func (ow *ObjectWriter) Bool(value bool) {
-// 	if ow.beforeValue() {
-// 		ow.w.Bool(value)
-// 	}
-// }
-
-// func (ow *ObjectWriter) Int(value int) {
-// 	if ow.beforeValue() {
-// 		ow.w.Int(value)
-// 	}
-// }
-
-// func (ow *ObjectWriter) Float64(value float64) {
-// 	if ow.beforeValue() {
-// 		ow.w.Float64(value)
-// 	}
-// }
-
-// func (ow *ObjectWriter) String(value string) {
-// 	if ow.beforeValue() {
-// 		ow.w.String(value)
-// 	}
-// }
-
-// func (ow *ObjectWriter) Raw(value json.RawMessage) {
-// 	if ow.beforeValue() {
-// 		ow.w.Raw(value)
-// 	}
-// }
-
-// func (ow *ObjectWriter) Array() ArrayWriter {
-// 	if ow.beforeValue() {
-// 		return ow.w.Array()
-// 	}
-// 	return ArrayWriter{}
-// }
-
-// func (ow *ObjectWriter) Object() ObjectWriter {
-// 	if ow.beforeValue() {
-// 		return ow.w.Object()
-// 	}
-// 	return ObjectWriter{}
-// }

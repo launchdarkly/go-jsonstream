@@ -9,9 +9,7 @@ package jreader
 // (Readable) will force the object to be allocated on the heap if it was not already.
 func UnmarshalJSONWithReader(data []byte, readable Readable) error {
 	r := NewReader(data)
-	if err := readable.ReadFromJSONReader(&r); err != nil {
-		return ToJSONError(err, readable)
-	}
+	readable.ReadFromJSONReader(&r)
 	if err := r.Error(); err != nil {
 		return ToJSONError(err, readable)
 	}
