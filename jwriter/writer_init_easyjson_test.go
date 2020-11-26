@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewWriterFromEasyjsonWriter(t *testing.T) {
+func TestNewWriterFromEasyJSONWriter(t *testing.T) {
 	expectedOutput := `[1,{"property":2},3]`
 	ejw := ejwriter.Writer{}
 
@@ -22,7 +22,7 @@ func TestNewWriterFromEasyjsonWriter(t *testing.T) {
 	require.NoError(t, ejw.Error)
 
 	// Now pick up where we left off and use our Writer to write {"property":2}
-	writer := NewWriterFromEasyjsonWriter(&ejw)
+	writer := NewWriterFromEasyJSONWriter(&ejw)
 	obj := writer.Object()
 	require.NoError(t, writer.Error())
 	obj.Property("property")
