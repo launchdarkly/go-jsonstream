@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs:
-  win: circleci/windows@2.4.0
-
 workflows:
   workflow:
     jobs:
@@ -12,8 +9,6 @@ workflows:
       - go-test:
           name: Go 1.14
           docker-image: circleci/golang:1.14
-      - go-test-windows:
-          name: Windows
       - benchmarks
 
 jobs:
@@ -89,24 +84,6 @@ jobs:
 
       - store_artifacts:
           path: /tmp/circle-artifacts
-
-  go-test-windows:
-    executor:
-      name: win/default
-      shell: powershell.exe
-
-    environment:
-      GOPATH: C:\Users\VssAdministrator\go
-
-    steps:
-      - checkout
-      - run: go version
-      - run:
-          name: build and test (default implementation)
-          command: go test -race ./...
-      - run:
-          name: build and test (easyjson implementation)
-          command: go test -tags launchdarkly_easyjson -race ./...
 
   benchmarks:
     docker:
