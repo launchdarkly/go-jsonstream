@@ -9,8 +9,9 @@ import (
 // that will be tested by ReaderTestSuite and WriterTestSuite.
 
 type testFactory struct {
-	valueTestFactory ValueTestFactory
-	encodingBehavior encodingBehavior
+	valueTestFactory     ValueTestFactory
+	readErrorTestFactory ReadErrorTestFactory
+	encodingBehavior     encodingBehavior
 }
 
 // This struct associates a test Action with some JSON data.
@@ -66,6 +67,23 @@ func maybeVariants(vs []ValueVariant) []ValueVariant {
 	return vs
 }
 
+func (f testFactory) MakeAllReadErrorTests() testDefs {
+	ret := testDefs{}
+	addErrors := func(tds testDefs) {
+		for _, td := range tds {
+			for i, enc := range td.encoding {
+				if enc == "" { // this means we want to force an unexpected EOF
+					td.encoding = td.encoding[0:i]
+					break
+				}
+			}
+			ret = append(ret, td)
+		}
+	}
+	addErrors(f.makeScalarValueReadErrorTests())
+	return ret
+}
+
 func (f testFactory) makeScalarValueTests(allPermutations bool) testDefs {
 	ret := testDefs{}
 	values := f.makeScalarValues(allPermutations)
@@ -82,6 +100,71 @@ func (f testFactory) makeScalarValueTests(allPermutations bool) testDefs {
 				action:   f.valueTestFactory.Value(tv.value, variant),
 			}
 			ret = append(ret, td)
+		}
+	}
+	return ret
+}
+
+func (f testFactory) makeScalarValueReadErrorTests() testDefs {
+	ret := testDefs{}
+	values := f.makeScalarValues(false)
+	oneVariant := []ValueVariant{""}
+	for _, testValue := range values {
+		tv := testValue
+		variants := f.valueTestFactory.Variants(tv.value)
+		if variants == nil {
+			variants = oneVariant
+		}
+		for _, variant := range variants {
+			v := variant
+			name := tv.name
+			if v != "" {
+				name = string(v) + " " + name
+			}
+			testAction := f.valueTestFactory.Value(tv.value, variant)
+
+			// error: want a value, got a value of some other type
+			if v != UntypedVariant && v != SkipValueVariant {
+				for _, wrongValue := range f.makeScalarValues(false) {
+					wv := wrongValue
+					if wv.value.Kind == tv.value.Kind {
+						continue
+					}
+					ret = append(ret, testDef{
+						name:     fmt.Sprintf("%s (but got %s)", name, wv.name),
+						encoding: []string{wv.encoding},
+						action: func(c TestContext) error {
+							return f.readErrorTestFactory.ExpectWrongTypeError(testAction(c), tv.value.Kind, v, wv.value.Kind)
+						},
+					})
+				}
+			}
+
+			// error: want a value, got some invalid JSON
+			for _, badThing := range []struct {
+				name     string
+				encoding string
+			}{
+				{"invalid identifier", "bad"},
+				{"unknown delimiter", "+"},
+				{"unexpected end array", "]"},
+				{"unexpected object", "}"},
+			} {
+				ret = append(ret, testDef{
+					name:     fmt.Sprintf("%s (but got %s)", name, badThing.name),
+					encoding: []string{badThing.encoding},
+					action: func(c TestContext) error {
+						return f.readErrorTestFactory.ExpectSyntaxError(testAction(c))
+					},
+				})
+			}
+			ret = append(ret, testDef{
+				name:     fmt.Sprintf("%s (but got unexpected EOF)", name),
+				encoding: []string{""},
+				action: func(c TestContext) error {
+					return f.readErrorTestFactory.ExpectEOFError(testAction(c))
+				},
+			})
 		}
 	}
 	return ret
