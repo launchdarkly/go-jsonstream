@@ -95,7 +95,6 @@ func (f writerValueTestFactory) Value(value commontest.AnyValue, variant commont
 		case commontest.ArrayValue:
 			arr := w.Array()
 			for _, e := range value.Array {
-				arr.Next()
 				if err := e(ctx); err != nil {
 					return err
 				}

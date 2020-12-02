@@ -3,8 +3,9 @@ package jwriter
 // ObjectWriter is a decorator that writes values to an underlying Writer within the context of a
 // JSON object, adding property names and commas between values as appropriate.
 type ObjectState struct {
-	w        *Writer
-	hasItems bool
+	w             *Writer
+	hasItems      bool
+	previousState writerState
 }
 
 // Property writes an object property name and a colon. You can then use Writer methods to write
@@ -115,5 +116,6 @@ func (obj *ObjectState) End() {
 		return
 	}
 	obj.w.AddError(obj.w.tw.Delimiter('}'))
+	obj.w.state = obj.previousState
 	obj.w = nil
 }

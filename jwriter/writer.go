@@ -22,8 +22,17 @@ import (
 // The underlying low-level stream writing and JSON formatting logic is abstracted out with the
 // TokenWriter interface.
 type Writer struct {
-	tw  tokenWriter
-	err error
+	tw    tokenWriter
+	err   error
+	state writerState
+}
+
+// writerState keeps track of semantic state such as whether we're within an array. This has
+// stack-like behavior, but to avoid allocating an actual stack, we use ArrayState and
+// ObjectState to hold previous values of this struct.
+type writerState struct {
+	inArray       bool
+	arrayHasItems bool
 }
 
 // Bytes returns the full contents of the output buffer.
@@ -54,35 +63,35 @@ func (w *Writer) Flush() error {
 
 // Null writes a JSON null value to the output.
 func (w *Writer) Null() {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.Null())
 	}
 }
 
 // Bool writes a JSON boolean value to the output.
 func (w *Writer) Bool(value bool) {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.Bool(value))
 	}
 }
 
 // Int writes a JSON numeric value to the output.
 func (w *Writer) Int(value int) {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.Int(value))
 	}
 }
 
 // Float64 writes a JSON numeric value to the output.
 func (w *Writer) Float64(value float64) {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.Float64(value))
 	}
 }
 
 // String writes a JSON string value to the output, adding quotes and performing any necessary escaping.
 func (w *Writer) String(value string) {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.String(value))
 	}
 }
@@ -90,7 +99,7 @@ func (w *Writer) String(value string) {
 // Raw writes a pre-encoded JSON value to the output as-is. Its format is assumed to be correct; this
 // operation will not fail unless it is not permitted to write a value at this point.
 func (w *Writer) Raw(value json.RawMessage) {
-	if w.err == nil {
+	if w.beforeValue() {
 		w.AddError(w.tw.Raw(value))
 	}
 }
@@ -98,12 +107,14 @@ func (w *Writer) Raw(value json.RawMessage) {
 // Array begins writing a JSON array to the output. It returns an ArrayState that provides the array
 // formatting; call ArrayState.Next() before each value, and ArrayState.End() when finished.
 func (w *Writer) Array() ArrayState {
-	if w.err == nil {
+	if w.beforeValue() {
 		if err := w.tw.Delimiter('['); err != nil {
 			w.err = err
 			return ArrayState{}
 		}
-		return ArrayState{w: w}
+		previousState := w.state
+		w.state = writerState{inArray: true}
+		return ArrayState{w: w, previousState: previousState}
 	}
 	return ArrayState{}
 }
@@ -111,12 +122,31 @@ func (w *Writer) Array() ArrayState {
 // Object begins writing a JSON object to the output. It returns an ObjectState that provides the
 // object formatting; call ObjectState.Property() before each value, and ObjectState.End() when finished.
 func (w *Writer) Object() ObjectState {
-	if w.err == nil {
+	if w.beforeValue() {
 		if err := w.tw.Delimiter('{'); err != nil {
 			w.err = err
 			return ObjectState{}
 		}
-		return ObjectState{w: w}
+		previousState := w.state
+		w.state = writerState{inArray: false}
+		return ObjectState{w: w, previousState: previousState}
 	}
 	return ObjectState{}
+}
+
+func (w *Writer) beforeValue() bool {
+	if w.err != nil {
+		return false
+	}
+	if w.state.inArray {
+		if w.state.arrayHasItems {
+			if err := w.tw.Delimiter(','); err != nil {
+				w.AddError(err)
+				return false
+			}
+		} else {
+			w.state.arrayHasItems = true
+		}
+	}
+	return true
 }
