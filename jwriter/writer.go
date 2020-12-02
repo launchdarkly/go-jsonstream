@@ -14,10 +14,10 @@ import (
 // - For writing array or object structures, the Array and Object methods return a struct that
 // keeps track of additional writer state while that structure is being written.
 //
-// - If any method encounters an error (due to either malformed JSON, or well-formed JSON that
-// did not match the caller's data type expectations), the Writer permanently enters a failed
-// state and remembers that error; all subsequent method calls for producing output will be
-// ignored.
+// - If any method encounters an error (for instance, if an underlying io.Writer returns an error
+// when using NewStreamingWriter), or if an error is explicitly raised with AddError, the Writer
+// permanently enters a failed state and remembers that error; all subsequent method calls for
+// producing output will be ignored.
 type Writer struct {
 	tw    tokenWriter
 	err   error
