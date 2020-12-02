@@ -18,9 +18,6 @@ import (
 // did not match the caller's data type expectations), the Writer permanently enters a failed
 // state and remembers that error; all subsequent method calls for producing output will be
 // ignored.
-//
-// The underlying low-level stream writing and JSON formatting logic is abstracted out with the
-// TokenWriter interface.
 type Writer struct {
 	tw    tokenWriter
 	err   error
@@ -40,7 +37,8 @@ func (w *Writer) Bytes() []byte {
 	return w.tw.Bytes()
 }
 
-// Error returns the first error, if any, that occurred during output generation.
+// Error returns the first error, if any, that occurred during output generation. If there have
+// been no errors, it returns nil.
 //
 // As soon as any operation fails at any level, either in the JSON encoding or in writing to an
 // underlying io.Writer, the Writer remembers the error and will generate no further output.

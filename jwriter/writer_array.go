@@ -1,5 +1,7 @@
 package jwriter
 
+import "encoding/json"
+
 // ArrayState is a decorator that manages the state of a JSON array that is in the process of being
 // written.
 //
@@ -60,6 +62,13 @@ func (arr *ArrayState) Object() ObjectState {
 		return arr.w.Object()
 	}
 	return ObjectState{}
+}
+
+// Raw is equivalent to calling writer.Raw().
+func (arr *ArrayState) Raw(value json.RawMessage) {
+	if arr.w != nil {
+		arr.w.Raw(value)
+	}
 }
 
 // End writes the closing delimiter of the array.

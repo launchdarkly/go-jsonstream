@@ -1,5 +1,7 @@
 package jwriter
 
+import "encoding/json"
+
 // ObjectWriter is a decorator that writes values to an underlying Writer within the context of a
 // JSON object, adding property names and commas between values as appropriate.
 type ObjectState struct {
@@ -9,19 +11,20 @@ type ObjectState struct {
 }
 
 // Property writes an object property name and a colon. You can then use Writer methods to write
-// the property value.
-func (obj *ObjectState) Property(name string) {
+// the property value. The return value is the same as the underlying Writer.
+func (obj *ObjectState) Property(name string) *Writer {
 	if obj.w == nil || obj.w.err != nil {
-		return
+		return obj.w
 	}
 	if obj.hasItems {
 		if err := obj.w.tw.Delimiter(','); err != nil {
 			obj.w.AddError(err)
-			return
+			return obj.w
 		}
 	}
 	obj.hasItems = true
 	obj.w.AddError(obj.w.tw.PropertyName(name))
+	return obj.w
 }
 
 // Null is a shortcut for calling Property(name) followed by writer.Null().
@@ -108,6 +111,14 @@ func (obj *ObjectState) Object(name string) ObjectState {
 		return obj.w.Object()
 	}
 	return ObjectState{}
+}
+
+// Raw is a shortcut for calling Property(name) followed by writer.Raw().
+func (obj *ObjectState) Raw(name string, value json.RawMessage) {
+	if obj.w != nil {
+		obj.Property(name)
+		obj.w.Raw(value)
+	}
 }
 
 // End writes the closing delimiter of the object.
