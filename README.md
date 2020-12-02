@@ -6,17 +6,15 @@
 
 The `go-jsonstream` library implements a streaming approach to JSON encoding and decoding which is more efficient than the standard mechanism in `encoding/json`. Unlike `encoding/json` or other reflection-based frameworks, it has no knowledge of structs or other complex types; you must explicitly tell it what values and properties to write or read. It was implemented for the [LaunchDarkly Go SDK](https://github.com/launchdarkly/go-server-sdk) and other LaunchDarkly Go components, but may be useful in other applications.
 
-There are three possible implementations, selectable via build tags:
+There are two possible implementations, selectable via build tags:
 
 1. A default implementation that has no external dependencies, compatible with all platforms. This performs better than `encoding/json`, but not as well as the other two below.
 
-2. An implementation that uses the low-level tokenizing and output functions from the [easyjson](https://github.com/mailru/easyjson) library (but without the code generation mechanism that easyjson also provides), compatible with all platforms. This is used if you enable the build tags `launchdarkly_easyjson` and `easyjson_nounsafe`.
+2. An implementation that uses the low-level tokenizing and output functions from the [easyjson](https://github.com/mailru/easyjson) library (but without the code generation mechanism that easyjson also provides). This is used if you enable the build tag `launchdarkly_easyjson`.
 
-3. The same easyjson implementation, but with more efficient string handling via the `unsafe` package. This is used if you enable the build tag `launchdarkly_easyjson`, but not `easyjson_nounsafe`.
+Although the easyjson implementation is the fastest, it is opt-in rather than being the default, for two reasons:
 
-Although the easyjson implementations are the fastest, they are opt-in rather than being the default, for two reasons:
-
-* The `unsafe` package is not allowed in some environments, such as Google App Engine. And since easyjson makes this an opt-_out_ feature, having the LaunchDarkly Go SDK use this implementation would break the SDK for developers in those environments unless they explicitly set the `easyjson_nounsafe` tag. Therefore, we have made the easyjson implementation an opt-in feature, and developers who set the `launchdarkly_easyjson` tag can then decide whether or not to also set `easyjson_nounsafe`.
+* By default, easyjson uses Go's `unsafe` package, which may be undesirable or not allowed depending on your runtime environment. Easyjson disables the use of `unsafe` if you set the build tag `easyjson_nounsafe` or `appengine`.
 
 * Although easyjson is widely used, at this time it does not have a stable 1.x version.
 

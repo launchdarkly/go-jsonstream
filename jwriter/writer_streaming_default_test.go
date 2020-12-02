@@ -18,25 +18,20 @@ func TestStreamingWriterWritesToTargetInChunks(t *testing.T) {
 	arr := w.Array()
 	require.Equal(t, expected, buf.String())
 
-	arr.Next()
-	w.Bool(true)
+	arr.Bool(true)
 	require.Equal(t, expected, buf.String())
 
-	arr.Next()
-	w.String("abc")
+	arr.String("abc")
 	expected += `[true,"abc`
 	require.Equal(t, expected, buf.String())
 
-	arr.Next()
-	w.Int(33)
+	arr.Int(33)
 	require.Equal(t, expected, buf.String())
 
-	arr.Next()
-	w.Null()
+	arr.Null()
 	require.Equal(t, expected, buf.String())
 
-	arr.Next()
-	w.Float64(2.5)
+	arr.Float64(2.5)
 	expected += `",33,null,`
 	require.Equal(t, expected, buf.String())
 

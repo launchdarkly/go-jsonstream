@@ -65,8 +65,7 @@ func BenchmarkWriteArrayOfBools(b *testing.B) {
 		w := NewWriter()
 		arr := w.Array()
 		for _, val := range vals {
-			arr.Next()
-			w.Bool(val)
+			arr.Bool(val)
 		}
 		arr.End()
 		benchmarkExpectWriterOutput(b, &w, expected)
@@ -81,8 +80,7 @@ func BenchmarkWriteArrayOfStrings(b *testing.B) {
 		w := NewWriter()
 		arr := w.Array()
 		for _, val := range vals {
-			arr.Next()
-			w.String(val)
+			arr.String(val)
 		}
 		arr.End()
 		benchmarkExpectWriterOutput(b, &w, expected)
@@ -116,8 +114,7 @@ func BenchmarkStreamingWriterArrayOfStrings(b *testing.B) {
 		w := NewStreamingWriter(&buf, 50)
 		arr := w.Array()
 		for _, val := range vals {
-			arr.Next()
-			w.String(val)
+			arr.String(val)
 		}
 		arr.End()
 		w.Flush()
