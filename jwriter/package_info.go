@@ -11,7 +11,7 @@
 //         value int
 //     }
 //
-//     func (s myStruct) WriteToJSONWriter(w *ljwriter.Writer) {
+//     func (s myStruct) WriteToJSONWriter(w *jwriter.Writer) {
 //         obj := w.Object() // writing a JSON object structure like {"value":2}
 //         obj.Int("value", s.value)
 //         obj.End()
@@ -19,7 +19,7 @@
 //
 //     func PrintMyStructJSON(s myStruct) {
 //         w := jwriter.NewWriter()
-//         s.WriteToJSONWriter(w)
+//         s.WriteToJSONWriter(&w)
 //         fmt.Println(string(w.Bytes())
 //     }
 //
