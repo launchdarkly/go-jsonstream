@@ -6,7 +6,7 @@ import (
 	"github.com/mailru/easyjson/jlexer"
 )
 
-// NewReaderFromEasyjsonLexer creates a Reader that consumes JSON input data from the specified easyjson
+// NewReaderFromEasyJSONLexer creates a Reader that consumes JSON input data from the specified easyjson
 // jlexer.Lexer.
 //
 // This function is only available in code that was compiled with the build tag "launchdarkly_easyjson".
@@ -14,7 +14,7 @@ import (
 // efficiently as possible within other data structures that are being unmarshaled with easyjson.
 // Directly using the same Lexer that is already being used is more efficient than asking Lexer to
 // scan the next object, return it as a byte slice, and then pass that byte slice to NewReader.
-func NewReaderFromEasyjsonLexer(lexer *jlexer.Lexer) Reader {
+func NewReaderFromEasyJSONLexer(lexer *jlexer.Lexer) Reader {
 	return Reader{
 		tr: newTokenReaderFromEasyjsonLexer(lexer),
 	}

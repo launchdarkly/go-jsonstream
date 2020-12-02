@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewReaderFromEasyjsonLexer(t *testing.T) {
+func TestNewReaderFromEasyJSONLexer(t *testing.T) {
 	data := []byte(`[1,{"property":2},3]`)
 	lexer := jlexer.Lexer{Data: data}
 
@@ -22,7 +22,7 @@ func TestNewReaderFromEasyjsonLexer(t *testing.T) {
 	lexer.WantComma()
 
 	// Now pick up where we left off and use the Reader to parse {"property":2}
-	reader := NewReaderFromEasyjsonLexer(&lexer)
+	reader := NewReaderFromEasyJSONLexer(&lexer)
 	obj := reader.Object()
 	require.NoError(t, reader.Error())
 	require.True(t, obj.Next())

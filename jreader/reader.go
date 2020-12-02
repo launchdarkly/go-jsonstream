@@ -19,25 +19,6 @@ package jreader
 // state and remembers that error; all subsequent method calls will return the same error and no
 // more parsing will happen. This means that the caller does not necessarily have to check the
 // error return value of any individual method, although it can.
-//
-// The underlying low-level stream reading and JSON tokenizing logic is abstracted out with the
-// TokenReader interface.
-//
-//     // This example reads a JSON object with two properties: a string and a bool
-//     r := NewReader([]byte(`{"s":"string value", "b":true}`))
-//     var stringValue string
-//     var boolValue bool
-//     for obj := r.Object(); obj.Next(); {
-//         switch string(obj.Name()) {
-//             case "s":
-//                 stringValue := r.String()
-//             case "b":
-//                 boolValue := r.Bool()
-//         }
-//     }
-//     if r.Error() != nil {
-//         // do whatever is appropriate if parsing failed at any point
-//     }
 type Reader struct {
 	tr                tokenReader
 	awaitingReadValue bool // used by ArrayState & ObjectState
