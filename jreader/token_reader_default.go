@@ -127,7 +127,7 @@ func (r *tokenReader) Null() (bool, error) {
 //
 // This and all other tokenReader methods skip transparently past whitespace between tokens.
 func (r *tokenReader) Bool() (bool, error) {
-	t, err := r.consume(boolToken)
+	t, err := r.consumeScalar(boolToken)
 	return t.boolValue, err
 }
 
@@ -136,7 +136,7 @@ func (r *tokenReader) Bool() (bool, error) {
 //
 // This and all other tokenReader methods skip transparently past whitespace between tokens.
 func (r *tokenReader) Number() (float64, error) {
-	t, err := r.consume(numberToken)
+	t, err := r.consumeScalar(numberToken)
 	return t.numberValue, err
 }
 
@@ -145,7 +145,7 @@ func (r *tokenReader) Number() (float64, error) {
 //
 // This and all other tokenReader methods skip transparently past whitespace between tokens.
 func (r *tokenReader) String() (string, error) {
-	t, err := r.consume(stringToken)
+	t, err := r.consumeScalar(stringToken)
 	return string(t.stringValue), err
 }
 
@@ -158,7 +158,7 @@ func (r *tokenReader) String() (string, error) {
 //
 // This and all other tokenReader methods skip transparently past whitespace between tokens.
 func (r *tokenReader) PropertyName() ([]byte, error) {
-	t, err := r.consume(stringToken)
+	t, err := r.consumeScalar(stringToken)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func (r *tokenReader) putBack(token token) {
 	r.hasUnread = true
 }
 
-func (r *tokenReader) consume(kind tokenKind) (token, error) {
+func (r *tokenReader) consumeScalar(kind tokenKind) (token, error) {
 	t, err := r.next()
 	if err != nil {
 		return token{}, err
@@ -329,7 +329,7 @@ func (r *tokenReader) consume(kind tokenKind) (token, error) {
 	if t.kind == kind {
 		return t, nil
 	}
-	if t.kind == delimiterToken {
+	if t.kind == delimiterToken && t.delimiter != '[' && t.delimiter != '{' {
 		return token{}, SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: r.LastPos()}
 	}
 	return token{}, TypeError{Expected: valueKindFromTokenKind(kind),

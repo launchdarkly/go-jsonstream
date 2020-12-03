@@ -138,6 +138,22 @@ func (f testFactory) makeScalarValueReadErrorTests() testDefs {
 						},
 					})
 				}
+				if tv.value.Kind != NullValue {
+					ret = append(ret, testDef{
+						name:     fmt.Sprintf("%s (but got array)", name),
+						encoding: []string{"[]"},
+						action: func(c TestContext) error {
+							return f.readErrorTestFactory.ExpectWrongTypeError(testAction(c), tv.value.Kind, v, ArrayValue)
+						},
+					})
+					ret = append(ret, testDef{
+						name:     fmt.Sprintf("%s (but got object)", name),
+						encoding: []string{"{}"},
+						action: func(c TestContext) error {
+							return f.readErrorTestFactory.ExpectWrongTypeError(testAction(c), tv.value.Kind, v, ObjectValue)
+						},
+					})
+				}
 			}
 
 			// error: want a value, got some invalid JSON
