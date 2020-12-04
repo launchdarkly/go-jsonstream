@@ -20,7 +20,7 @@ Although the easyjson implementation is the fastest, it is opt-in rather than be
 
 The design of `go-jsonstream` allows encoding/decoding logic to be written against the same API without needing to know whether the easyjson implementation will be used at build time or not. There is an adapter (also conditionally compiled with the `launchdarkly_easyjson` tag) to allow `go-jsonstream` to plug directly into a `jlexer.Lexer` or `jwriter.Writer` that is being used to read or write some other type with easyjson.
 
-The unit tests for `go-streamstream` define a common test suite that is run against the default implementation and the easyjson implementation, to verify that their behavior is consistent across a large number of permutations of possible JSON inputs and outputs.
+The unit tests for `go-jsonstream` define a common test suite that is run against the default implementation and the easyjson implementation, to verify that their behavior is consistent across a large number of permutations of possible JSON inputs and outputs.
 
 ## Supported Go versions
 

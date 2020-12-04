@@ -71,7 +71,7 @@ func (c readerTestContext) JSONData() []byte { return c.input }
 
 func (f readerValueTestFactory) EOF() commontest.Action {
 	return func(c commontest.TestContext) error {
-		return commontest.AssertTrue(c.(*readerTestContext).r.tr.EOF(), "unexpected data after end")
+		return c.(*readerTestContext).r.RequireEOF()
 	}
 }
 
