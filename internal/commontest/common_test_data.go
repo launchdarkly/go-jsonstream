@@ -19,8 +19,9 @@ const (
 )
 
 var (
-	ExampleStructData  = []byte(`{"string":"s","int":3,"optBool":true}`)
-	ExampleStructValue = ExampleStruct{StringField: "s", IntField: 3, OptBoolAsInterfaceField: true}
+	ExampleStructData               = []byte(`{"string":"s","int":3,"optBool":true}`)
+	ExampleStructValue              = ExampleStruct{StringField: "s", IntField: 3, OptBoolAsInterfaceField: true}
+	ExampleStructRequiredFieldNames = []string{ExampleStructStringFieldName, ExampleStructIntFieldName}
 )
 
 func MakeBools() []bool {

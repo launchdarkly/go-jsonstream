@@ -45,6 +45,17 @@ type TypeError struct {
 	Offset int
 }
 
+// RequiredPropertyError is returned by Reader if a JSON object did not contain a property that
+// was designated as required (by using ObjectState.WithRequiredProperties).
+type RequiredPropertyError struct {
+	// Name is the name of a required object property that was not found.
+	Name string
+
+	// Offset is the approximate character index within the input where the error occurred
+	// (at or near the end of the JSON object).
+	Offset int
+}
+
 // Error returns a description of the error.
 func (e SyntaxError) Error() string {
 	if e.Value != "" {
@@ -59,6 +70,11 @@ func (e TypeError) Error() string {
 		return fmt.Sprintf("expected %s or null, got %s at position %d", e.Expected, e.Actual, e.Offset)
 	}
 	return fmt.Sprintf("expected %s, got %s at position %d", e.Expected, e.Actual, e.Offset)
+}
+
+// Error returns a description of the error.
+func (e RequiredPropertyError) Error() string {
+	return fmt.Sprintf("a required property %q was missing from a JSON object at position %d", e.Name, e.Offset)
 }
 
 // ToJSONError converts errors defined by the jreader package into the corresponding error types defined

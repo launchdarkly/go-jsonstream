@@ -226,3 +226,27 @@ func ExampleReader_Any() {
 	// Output: a number: 123
 	// an array with 2 elements
 }
+
+func ExampleObjectState_WithRequiredProperties() {
+	requiredProps := []string{"key", "name"}
+	r := NewReader([]byte(`{"name": "x"}`))
+	var key, name string
+	for obj := r.Object().WithRequiredProperties(requiredProps); obj.Next(); {
+		switch string(obj.Name()) {
+		case "key":
+			key = r.String()
+		case "name":
+			name = r.String()
+		}
+	}
+	if err := r.Error(); err != nil {
+		if rpe, ok := err.(RequiredPropertyError); ok {
+			fmt.Println("missing property:", rpe.Name)
+		} else {
+			fmt.Println("unexpected error:", err)
+		}
+	} else {
+		fmt.Println(key, name)
+	}
+	// Output: missing property: key
+}

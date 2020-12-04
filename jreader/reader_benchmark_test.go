@@ -144,6 +144,18 @@ func BenchmarkReadObjectNoAlloc(b *testing.B) {
 	}
 }
 
+func BenchmarkReadObjectWithRequiredPropsNoAlloc(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		var val ExampleStructWrapperWithRequiredProps
+		r := NewReader(commontest.ExampleStructData)
+		val.ReadFromJSONReader(&r)
+		failBenchmarkOnReaderError(b, &r)
+		if val != ExampleStructWrapperWithRequiredProps(commontest.ExampleStructValue) {
+			b.FailNow()
+		}
+	}
+}
+
 func failBenchmarkOnReaderError(b *testing.B, r *Reader) {
 	if r.Error() != nil {
 		b.Error(r.Error())
