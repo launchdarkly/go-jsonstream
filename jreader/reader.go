@@ -392,7 +392,7 @@ func typeErrorForNullableValue(err error) error {
 func (r *Reader) typeErrorForCurrentToken(expected ValueKind, nullable bool) error {
 	v, err := r.tr.Any()
 	if err != nil {
-		return nil
+		return err
 	}
 	return TypeError{Expected: expected, Actual: v.Kind, Offset: r.tr.LastPos(), Nullable: nullable}
 }
