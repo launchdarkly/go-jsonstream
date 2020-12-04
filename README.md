@@ -1,6 +1,6 @@
 # LaunchDarkly Streaming JSON for Go
 
-[![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Documentation](https://img.shields.io/static/v1?label=go.dev&message=reference&color=00add8)](https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1)
+[![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Documentation](https://img.shields.io/static/v1?label=go.dev&message=reference&color=00add8)](https://pkg.go.dev/github.com/launchdarkly/go-jsonstream)
 
 ## Overview
 
@@ -25,10 +25,6 @@ The unit tests for `go-jsonstream` define a common test suite that is run agains
 ## Supported Go versions
 
 This version of the project has been tested with Go 1.14 and higher.
-
-## Import path
-
-The base import path is `gopkg.in/launchdarkly/go-jsonstream.v1`, not `github.com/launchdarkly/go-jsonstream`. This ensures that the package can be referenced not only as a Go module, but also by projects that use older tools like `dep` and `govendor`, because current releases of the LaunchDarkly Go SDK support either module or non-module usage. Future releases of this package may drop support for non-module usage.
 
 ## Contributing
 
