@@ -48,6 +48,15 @@ func (r *Reader) AddError(err error) {
 	}
 }
 
+// ReplaceError sets the Reader's error value and puts it into a failed state, replacing any
+// previously reported error. If the parameter is nil, it does nothing (a failed state cannot be
+// changed to a non-failed state).
+func (r *Reader) ReplaceError(err error) {
+	if err != nil {
+		r.err = err
+	}
+}
+
 // Null attempts to read a null value, returning an error if the next token is not a null.
 func (r *Reader) Null() error {
 	r.awaitingReadValue = false
