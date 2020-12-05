@@ -144,6 +144,31 @@ func BenchmarkReadObjectNoAlloc(b *testing.B) {
 	}
 }
 
+func BenchmarkReadArrayOfObjects(b *testing.B) {
+	rawStructs := commontest.MakeStructs()
+	data := commontest.MakeStructsJSON(rawStructs)
+	var expected []ExampleStructWrapper
+	for _, rawStruct := range rawStructs {
+		expected = append(expected, ExampleStructWrapper(rawStruct))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		values := make([]ExampleStructWrapper, 0)
+		r := NewReader(data)
+		for arr := r.Array(); arr.Next(); {
+			var val ExampleStructWrapper
+			val.ReadFromJSONReader(&r)
+			values = append(values, val)
+		}
+		failBenchmarkOnReaderError(b, &r)
+		for i, val := range values {
+			if val != expected[i] {
+				b.FailNow()
+			}
+		}
+	}
+}
+
 func BenchmarkReadObjectWithRequiredPropsNoAlloc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var val ExampleStructWrapperWithRequiredProps

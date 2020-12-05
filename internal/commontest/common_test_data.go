@@ -67,3 +67,20 @@ func MakeStringsJSON(strings []string) []byte {
 	buf.WriteRune(']')
 	return buf.Bytes()
 }
+
+func MakeStructs() []ExampleStruct {
+	ret := make([]ExampleStruct, 0, 100)
+	for i := 0; i < 100; i++ {
+		ret = append(ret, ExampleStruct{
+			StringField:             fmt.Sprintf("string%d", i),
+			IntField:                i * 10,
+			OptBoolAsInterfaceField: i%2 == 1,
+		})
+	}
+	return ret
+}
+
+func MakeStructsJSON(structs []ExampleStruct) []byte {
+	bytes, _ := json.Marshal(structs)
+	return bytes
+}
