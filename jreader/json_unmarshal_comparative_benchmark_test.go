@@ -20,6 +20,7 @@ func BenchmarkJSONUnmarshalComparatives(b *testing.B) {
 	b.Run("ArrayOfBools", benchmarkReadArrayOfBoolsJSONUnmarshal)
 	b.Run("ArrayOfStrings", benchmarkReadArrayOfStringsJSONUnmarshal)
 	b.Run("Object", benchmarkReadObjectJSONUnmarshal)
+	b.Run("ArrayOfObjects", benchmarkReadArrayOfObjectsJSONUnmarshal)
 }
 
 func benchmarkReadNullJSONUnmarshal(b *testing.B) {
@@ -143,6 +144,28 @@ func benchmarkReadObjectJSONUnmarshal(b *testing.B) {
 		}
 		if val != ExampleStructWrapper(commontest.ExampleStructValue) {
 			b.FailNow()
+		}
+	}
+}
+
+func benchmarkReadArrayOfObjectsJSONUnmarshal(b *testing.B) {
+	rawStructs := commontest.MakeStructs()
+	data := commontest.MakeStructsJSON(rawStructs)
+	var expected []ExampleStructWrapper
+	for _, rawStruct := range rawStructs {
+		expected = append(expected, ExampleStructWrapper(rawStruct))
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var values []ExampleStructWrapper
+		if err := json.Unmarshal(data, &values); err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
+		for i, val := range values {
+			if val != expected[i] {
+				b.FailNow()
+			}
 		}
 	}
 }

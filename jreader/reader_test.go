@@ -350,6 +350,25 @@ func (f readerErrorTestFactory) ExpectSyntaxError(err error) error {
 	return tokenReaderErrorTestFactory{}.ExpectSyntaxError(err)
 }
 
+func TestReaderAddErrorDoesNotOverridePreviousError(t *testing.T) {
+	fakeError := errors.New("sorry")
+	r := NewReader([]byte(`"not a bool"`))
+	_ = r.Bool()
+	r.AddError(fakeError)
+	require.Error(t, r.Error())
+	require.NotEqual(t, fakeError, r.Error())
+	require.IsType(t, TypeError{}, r.Error())
+}
+
+func TestReaderSetErrorOverridesPreviousError(t *testing.T) {
+	fakeError := errors.New("sorry")
+	r := NewReader([]byte(`"not a bool"`))
+	_ = r.Bool()
+	r.ReplaceError(fakeError)
+	require.Error(t, r.Error())
+	require.Equal(t, fakeError, r.Error())
+}
+
 func TestReaderSkipValue(t *testing.T) {
 	t.Run("Next() skips array element if it was not read", func(t *testing.T) {
 		data := []byte(`["a", ["b1", "b2"], "c"]`)
