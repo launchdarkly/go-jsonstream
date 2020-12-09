@@ -1,0 +1,107 @@
+version: 2.1
+
+workflows:
+  workflow:
+    jobs:
+      - go-test:
+          name: Go 1.15
+          docker-image: circleci/golang:1.15
+      - go-test:
+          name: Go 1.14
+          docker-image: circleci/golang:1.14
+      - benchmarks
+
+jobs:
+  go-test:
+    parameters:
+      docker-image:
+        type: string
+      run-lint:
+        type: boolean
+        default: true
+        # We are currently linting in all Go versions, but this parameter lets us turn it off for some, in
+        # case we need to support more versions than a single version of golangci-lint is compatible with
+      with-coverage:
+        type: boolean
+        default: false
+    
+    docker:
+      - image: <<parameters.docker-image>>
+        environment:
+          CIRCLE_TEST_REPORTS: /tmp/circle-reports
+          CIRCLE_ARTIFACTS: /tmp/circle-artifacts
+
+    steps:
+      - checkout
+      
+      - run:
+          name: install go-junit-report
+          command: go get -u github.com/jstemmer/go-junit-report
+      
+      - run:
+          name: build (default implementation)
+          command: make build
+
+      - run:
+          name: build (easyjson implementation)
+          command: make build-easyjson
+
+      - when:
+          condition: <<parameters.run-lint>>
+          steps:
+            - run: make lint    
+
+      - run:
+          name: run tests (default implementation)
+          command: |
+            mkdir -p $CIRCLE_TEST_REPORTS
+            mkdir -p $CIRCLE_ARTIFACTS
+            make test | tee $CIRCLE_ARTIFACTS/report.txt
+    
+      - run:
+          name: run tests (easyjson implementation)
+          command: |
+            make test-easyjson | tee -a $CIRCLE_ARTIFACTS/report.txt
+    
+      - run:
+          name: Process test results
+          command: go-junit-report < $CIRCLE_ARTIFACTS/report.txt > $CIRCLE_TEST_REPORTS/junit.xml
+          when: always
+      
+      - when:
+          condition: <<parameters.with-coverage>>
+          steps:
+            - run:
+                name: Verify test coverage
+                command: make test-coverage
+            - run:
+                name: Store coverage results
+                command: cp build/coverage* /tmp/circle-artifacts
+                when: always
+          
+      - store_test_results:
+          path: /tmp/circle-reports
+
+      - store_artifacts:
+          path: /tmp/circle-artifacts
+
+  benchmarks:
+    docker:
+      - image: circleci/golang:1.15
+        environment:
+          CIRCLE_ARTIFACTS: /tmp/circle-artifacts
+
+    steps:
+      - checkout
+      - run: go build ./...      
+      - run:
+          name: run benchmarks (default implementation)
+          command: |
+            mkdir -p $CIRCLE_ARTIFACTS
+            make benchmarks | tee $CIRCLE_ARTIFACTS/benchmarks.txt
+      - run:
+          name: run benchmarks (easyjson implementation)
+          command: make benchmarks-easyjson | tee $CIRCLE_ARTIFACTS/benchmarks-easyjson.txt
+
+      - store_artifacts:
+          path: /tmp/circle-artifacts
