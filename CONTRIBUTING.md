@@ -14,8 +14,6 @@ We encourage pull requests and other contributions from the community. Before su
  
 This project should be built against Go 1.14 or newer.
 
-Note that the base import path is `gopkg.in/launchdarkly/go-jsonstream.v1`, not `github.com/launchdarkly/go-jsonstream`; all references in this code to other packages within the repository must use that same base import path. This ensures that the package can be referenced not only as a Go module, but also by projects that use older tools like `dep` and `govendor`, because current releases of the LaunchDarkly Go SDK support either module or non-module usage. Future releases of this package may drop support for non-module usage.
-
 ### Building
 
 To build the project without running any tests:

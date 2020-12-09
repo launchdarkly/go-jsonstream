@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/internal/commontest"
 )
 
 // This uses the framework defined in ReaderTestSuite to exercise any TokenReader implementation
