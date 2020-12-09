@@ -44,6 +44,14 @@ type ValueTestFactory interface {
 	Variants(value AnyValue) []ValueVariant
 }
 
+// ReadErrorTestFactory is an interface for use with ReaderTestSuite to generate expectations about
+// how errors are reported.
+type ReadErrorTestFactory interface {
+	ExpectEOFError(err error) error
+	ExpectWrongTypeError(err error, expectedType ValueKind, variant ValueVariant, gotType ValueKind) error
+	ExpectSyntaxError(err error) error
+}
+
 type ValueKind int
 
 const (
