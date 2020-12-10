@@ -1,4 +1,4 @@
-module github.com/launchdarkly/go-jsonstream
+module gopkg.in/launchdarkly/go-jsonstream.v1
 
 go 1.14
 

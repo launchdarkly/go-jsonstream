@@ -1,9 +1,11 @@
 template:
   name: go
+  env:
+    LD_RELEASE_GO_IMPORT_PATH: gopkg.in/launchdarkly/go-jsonstream.v1
 
 releasableBranches:
   - name: v1
 
 publications:
-  - url: https://pkg.go.dev/github.com/launchdarkly/go-jsonstream
+  - url: https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1
     description: documentation

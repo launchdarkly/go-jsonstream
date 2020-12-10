@@ -3,7 +3,7 @@ package jreader
 import (
 	"testing"
 
-	"github.com/launchdarkly/go-jsonstream/internal/commontest"
+	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
 )
 
 func BenchmarkReadNullNoAlloc(b *testing.B) {

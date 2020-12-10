@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/launchdarkly/go-jsonstream/internal/commontest"
+	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
 )
 
 // This uses the framework defined in the commontest package to exercise Writer with a large
