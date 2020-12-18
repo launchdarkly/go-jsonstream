@@ -103,7 +103,7 @@ func (w *Writer) Raw(value json.RawMessage) {
 }
 
 // Array begins writing a JSON array to the output. It returns an ArrayState that provides the array
-// formatting; call ArrayState.Next() before each value, and ArrayState.End() when finished.
+// formatting; you must call ArrayState.End() when finished.
 func (w *Writer) Array() ArrayState {
 	if w.beforeValue() {
 		if err := w.tw.Delimiter('['); err != nil {
@@ -118,7 +118,7 @@ func (w *Writer) Array() ArrayState {
 }
 
 // Object begins writing a JSON object to the output. It returns an ObjectState that provides the
-// object formatting; call ObjectState.Property() before each value, and ObjectState.End() when finished.
+// object formatting; you must call ObjectState.End() when finished.
 func (w *Writer) Object() ObjectState {
 	if w.beforeValue() {
 		if err := w.tw.Delimiter('{'); err != nil {
