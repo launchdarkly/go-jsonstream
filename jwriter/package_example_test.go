@@ -6,7 +6,7 @@ func Example() {
 	w := NewWriter()
 
 	obj := w.Object()
-	obj.String("propertyName", "propertyValue")
+	obj.Name("propertyName").String("propertyValue")
 	obj.End()
 
 	if err := w.Error(); err != nil {

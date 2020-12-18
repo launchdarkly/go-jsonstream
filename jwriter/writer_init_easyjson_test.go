@@ -25,9 +25,7 @@ func TestNewWriterFromEasyJSONWriter(t *testing.T) {
 	writer := NewWriterFromEasyJSONWriter(&ejw)
 	obj := writer.Object()
 	require.NoError(t, writer.Error())
-	obj.Property("property")
-	require.NoError(t, writer.Error())
-	writer.Int(2)
+	obj.Name("property").Int(2)
 	require.NoError(t, writer.Error())
 	obj.End()
 

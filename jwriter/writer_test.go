@@ -104,7 +104,7 @@ func (f writerValueTestFactory) Value(value commontest.AnyValue, variant commont
 		case commontest.ObjectValue:
 			obj := w.Object()
 			for _, p := range value.Object {
-				obj.Property(p.Name)
+				obj.Name(p.Name)
 				if err := p.Action(ctx); err != nil {
 					return err
 				}

@@ -13,7 +13,7 @@
 //
 //     func (s myStruct) WriteToJSONWriter(w *jwriter.Writer) {
 //         obj := w.Object() // writing a JSON object structure like {"value":2}
-//         obj.Int("value", s.value)
+//         obj.Property("value").Int(s.value)
 //         obj.End()
 //     }
 //
