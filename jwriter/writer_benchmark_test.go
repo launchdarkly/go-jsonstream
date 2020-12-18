@@ -105,6 +105,22 @@ func benchmarkExpectWriterOutput(b *testing.B, w *Writer, expectedJSON []byte) {
 	}
 }
 
+func BenchmarkWriteObjectToNoOpWriterNoAllocs(b *testing.B) {
+	// The purpose of this benchmark is to ensure that nothing is escaping to the heap simply
+	// as result of calling the Name or Maybe methods (as it might if we hadn't been
+	// careful about our use of pointers). We're preinitializing the Writer to already have an
+	// error, so it won't produce any output.
+	w := NewWriter()
+	obj := w.Object()
+	w.AddError(noOpWriterError{})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		obj.Name("prop1").Int(1)
+		obj.Maybe("prop2", true).Int(2)
+		obj.Maybe("prop3", false).Int(3)
+	}
+}
+
 func BenchmarkStreamingWriterArrayOfStrings(b *testing.B) {
 	vals := commontest.MakeStrings()
 	expected := commontest.MakeStringsJSON(vals)

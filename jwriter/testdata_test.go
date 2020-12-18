@@ -9,9 +9,9 @@ type ExampleStructWrapper commontest.ExampleStruct
 
 func (s ExampleStructWrapper) WriteToJSONWriter(w *Writer) {
 	obj := w.Object()
-	obj.String(commontest.ExampleStructStringFieldName, s.StringField)
-	obj.Int(commontest.ExampleStructIntFieldName, s.IntField)
-	obj.Property(commontest.ExampleStructOptBoolAsInterfaceFieldName)
+	obj.Name(commontest.ExampleStructStringFieldName).String(s.StringField)
+	obj.Name(commontest.ExampleStructIntFieldName).Int(s.IntField)
+	obj.Name(commontest.ExampleStructOptBoolAsInterfaceFieldName)
 	if s.OptBoolAsInterfaceField == nil {
 		w.Null()
 	} else {

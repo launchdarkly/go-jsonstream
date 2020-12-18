@@ -22,7 +22,7 @@ func TestArrayState(t *testing.T) {
 	aa.End()
 
 	ao := a.Object()
-	ao.Int("seven", 7)
+	ao.Name("seven").Int(7)
 	ao.End()
 
 	a.End()

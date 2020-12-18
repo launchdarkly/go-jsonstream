@@ -78,10 +78,10 @@ func ExampleArrayState_Object() {
 	w := NewWriter()
 	arr := w.Array()
 	obj1 := arr.Object()
-	obj1.Int("value", 1)
+	obj1.Name("value").Int(1)
 	obj1.End()
 	obj2 := arr.Object()
-	obj2.Int("value", 2)
+	obj2.Name("value").Int(2)
 	obj2.End()
 	arr.End()
 

@@ -73,10 +73,30 @@ func (w *Writer) Bool(value bool) {
 	}
 }
 
+// BoolOrNull is a shortcut for calling Bool(value) if isDefined is true, or else
+// Null().
+func (w *Writer) BoolOrNull(isDefined bool, value bool) {
+	if isDefined {
+		w.Bool(value)
+	} else {
+		w.Null()
+	}
+}
+
 // Int writes a JSON numeric value to the output.
 func (w *Writer) Int(value int) {
 	if w.beforeValue() {
 		w.AddError(w.tw.Int(value))
+	}
+}
+
+// IntOrNull is a shortcut for calling Int(value) if isDefined is true, or else
+// Null().
+func (w *Writer) IntOrNull(isDefined bool, value int) {
+	if isDefined {
+		w.Int(value)
+	} else {
+		w.Null()
 	}
 }
 
@@ -87,6 +107,16 @@ func (w *Writer) Float64(value float64) {
 	}
 }
 
+// Float64OrNull is a shortcut for calling Float64(value) if isDefined is true, or else
+// Null().
+func (w *Writer) Float64OrNull(isDefined bool, value float64) {
+	if isDefined {
+		w.Float64(value)
+	} else {
+		w.Null()
+	}
+}
+
 // String writes a JSON string value to the output, adding quotes and performing any necessary escaping.
 func (w *Writer) String(value string) {
 	if w.beforeValue() {
@@ -94,10 +124,22 @@ func (w *Writer) String(value string) {
 	}
 }
 
+// StringOrNull is a shortcut for calling String(value) if isDefined is true, or else
+// Null().
+func (w *Writer) StringOrNull(isDefined bool, value string) {
+	if isDefined {
+		w.String(value)
+	} else {
+		w.Null()
+	}
+}
+
 // Raw writes a pre-encoded JSON value to the output as-is. Its format is assumed to be correct; this
 // operation will not fail unless it is not permitted to write a value at this point.
 func (w *Writer) Raw(value json.RawMessage) {
-	if w.beforeValue() {
+	if value == nil {
+		w.Null()
+	} else if w.beforeValue() {
 		w.AddError(w.tw.Raw(value))
 	}
 }
