@@ -2,10 +2,6 @@
 
 [![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Documentation](https://img.shields.io/static/v1?label=go.dev&message=reference&color=00add8)](https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1)
 
-## This is incomplete prerelease code
-
-This repository is still under preliminary development. It has been made public in order to allow other internal projects to reference it during development and testing.
-
 ## Overview
 
 The `go-jsonstream` library implements a streaming approach to JSON encoding and decoding which is more efficient than the standard mechanism in `encoding/json`. Unlike `encoding/json` or other reflection-based frameworks, it has no knowledge of structs or other complex types; you must explicitly tell it what values and properties to write or read. It was implemented for the [LaunchDarkly Go SDK](https://github.com/launchdarkly/go-server-sdk) and other LaunchDarkly Go components, but may be useful in other applications.
