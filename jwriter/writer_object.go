@@ -29,17 +29,17 @@ func (obj *ObjectState) Name(name string) *Writer {
 }
 
 // Maybe writes an object property name conditionally depending on a boolean parameter.
-// If present is true, this behaves the same as Property(name). However, if present is false,
+// If shouldWrite is true, this behaves the same as Property(name). However, if shouldWrite is false,
 // it does not write a property name and instead of returning the underlying Writer, it returns
 // a stub Writer that does not produce any output. This allows you to chain method calls without
 // having to use an if statement.
 //
 //     obj.Maybe(shouldWeIncludeTheProperty, "myBooleanProperty").Bool(true)
-func (obj *ObjectState) Maybe(name string, present bool) *Writer {
+func (obj *ObjectState) Maybe(name string, shouldWrite bool) *Writer {
 	if obj.w == nil {
 		return &noOpWriter
 	}
-	if present {
+	if shouldWrite {
 		return obj.Name(name)
 	}
 	return &noOpWriter
