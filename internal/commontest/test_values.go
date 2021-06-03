@@ -47,10 +47,14 @@ func makeNumberTestValues(encodingBehavior encodingBehavior) []testValue {
 		{"int large", 1603312301195, "1603312301195", ""}, // enough magnitude for a millisecond timestamp
 		{"float", 3.5, "3.5", ""},
 		{"float negative", -3.5, "-3.5", ""},
-		{"float with exp", 3500, "3.5e3", "3500"},
-		{"float with Exp", 3500, "3.5E3", "3500"},
-		{"float with exp+", 3500, "3.5e+3", "3500"},
-		{"float with exp-", 0.0035, "3.5e-3", "0.0035"},
+		{"float with exp and decimal", 3500, "3.5e3", "3500"},
+		{"float with Exp and decimal", 3500, "3.5E3", "3500"},
+		{"float with exp+ and decimal", 3500, "3.5e+3", "3500"},
+		{"float with exp- and decimal", 0.0035, "3.5e-3", "0.0035"},
+		{"float with exp but no decimal", 5000, "5e3", "5000"},
+		{"float with Exp but no decimal", 5000, "5E3", "5000"},
+		{"float with exp+ but no decimal", 5000, "5e+3", "5000"},
+		{"float with exp- but no decimal", 0.005, "5e-3", "0.005"},
 	} {
 		enc := v.encoding
 		if !encodingBehavior.forParsing && v.simplestEncoding != "" {

@@ -380,7 +380,7 @@ func (r *tokenReader) consumeASCIILowercaseAlphabeticChars() int {
 
 func (r *tokenReader) readNumber(first byte) (float64, bool) {
 	startPos := r.lastPos
-	hasDecimal := false
+	isFloat := false
 	var ch byte
 	var ok bool
 	for {
@@ -388,13 +388,14 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 		if !ok {
 			break
 		}
-		if (ch < '0' || ch > '9') && !(ch == '.' && !hasDecimal) {
+		if (ch < '0' || ch > '9') && !(ch == '.' && !isFloat) {
 			break
 		}
 		if ch == '.' {
-			hasDecimal = true
+			isFloat = true
 		}
 	}
+	hasExponent := false
 	if ch == 'e' || ch == 'E' {
 		// exponent must match this regex: [eE][-+]?[0-9]+
 		ch, ok = r.readByte()
@@ -407,7 +408,6 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 		} else {
 			return 0, false
 		}
-		haveExpDigits := false
 		for {
 			ch, ok = r.readByte()
 			if !ok {
@@ -417,18 +417,19 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 				r.unreadByte()
 				break
 			}
-			haveExpDigits = true
+			hasExponent = true
 		}
-		if !haveExpDigits {
+		if !hasExponent {
 			return 0, false
 		}
+		isFloat = true
 	} else {
 		if ok {
 			r.unreadByte()
 		}
 	}
 	chars := r.data[startPos:r.pos]
-	if hasDecimal {
+	if isFloat {
 		// Unfortunately, strconv.ParseFloat requires a string - there is no []byte equivalent. This means we can't
 		// avoid a heap allocation here. Easyjson works around this by creating an unsafe string that points directly
 		// at the existing bytes, but in our default implementation we can't use unsafe.
