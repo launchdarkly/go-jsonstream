@@ -1,12 +1,14 @@
-template:
-  name: go
-  env:
-    LD_RELEASE_GO_IMPORT_PATH: gopkg.in/launchdarkly/go-jsonstream.v1
-  skip: # skip build/test in release for now, because Releaser doesn't have a new enough version of Go
-    - build
-    - test
+version: 2
 
-releasableBranches:
+jobs:
+  - docker:
+      image: golang:1.14-buster
+    template:
+      name: go
+    env:
+      LD_RELEASE_GO_IMPORT_PATH: gopkg.in/launchdarkly/go-jsonstream.v1
+
+branches:
   - name: v1
 
 publications:
