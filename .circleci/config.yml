@@ -4,11 +4,14 @@ workflows:
   workflow:
     jobs:
       - go-test:
+          name: Go 1.16
+          docker-image: cimg/go:1.16
+      - go-test:
           name: Go 1.15
-          docker-image: circleci/golang:1.15
+          docker-image: cimg/go:1.15
       - go-test:
           name: Go 1.14
-          docker-image: circleci/golang:1.14
+          docker-image: cimg/go:1.14
       - benchmarks
 
 jobs:
@@ -87,7 +90,7 @@ jobs:
 
   benchmarks:
     docker:
-      - image: circleci/golang:1.15
+      - image: cimg/go:1.16
         environment:
           CIRCLE_ARTIFACTS: /tmp/circle-artifacts
 
