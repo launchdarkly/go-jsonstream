@@ -380,7 +380,7 @@ func (r *Reader) SkipValue() error {
 
 func typeErrorForNullableValue(err error) error {
 	if err != nil {
-		switch e := err.(type) {
+		switch e := err.(type) { //nolint:gocritic
 		case TypeError:
 			e.Nullable = true
 			return e

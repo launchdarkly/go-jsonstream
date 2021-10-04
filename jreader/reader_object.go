@@ -165,9 +165,9 @@ func (obj *ObjectState) Name() []byte {
 // to the array (obj.requiredProps = obj.requiredPropsFound[0:len(obj.requiredProps)]); the Go
 // compiler can't prove that that's safe, so it will make everything escape to the heap. Instead
 // we have to conditionally reference one or the other here.
-func (o *ObjectState) requiredPropsFoundSlice() []bool {
-	if o.requiredPropsFound != nil {
-		return o.requiredPropsFound
+func (obj *ObjectState) requiredPropsFoundSlice() []bool {
+	if obj.requiredPropsFound != nil {
+		return obj.requiredPropsFound
 	}
-	return o.requiredPropsPrealloc[0:len(o.requiredProps)]
+	return obj.requiredPropsPrealloc[0:len(obj.requiredProps)]
 }

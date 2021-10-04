@@ -1,5 +1,5 @@
 
-GOLANGCI_LINT_VERSION=v1.27.0
+GOLANGCI_LINT_VERSION=v1.42.1
 
 LINTER=./bin/golangci-lint
 LINTER_VERSION_FILE=./bin/.golangci-lint-version-$(GOLANGCI_LINT_VERSION)
@@ -38,8 +38,7 @@ test-easyjson: build-easyjson
 	go test $(EASYJSON_TAG) -count 1 ./...
 
 test-coverage: $(COVERAGE_PROFILE_RAW)
-	if [ -z "$(which go-coverage-enforcer)" ]; then go install github.com/launchdarkly-labs/go-coverage-enforcer; fi
-	go-coverage-enforcer $(COVERAGE_ENFORCER_FLAGS) -outprofile $(COVERAGE_PROFILE_FILTERED) $(COVERAGE_PROFILE_RAW)
+	go run github.com/launchdarkly-labs/go-coverage-enforcer@latest $(COVERAGE_ENFORCER_FLAGS) -outprofile $(COVERAGE_PROFILE_FILTERED) $(COVERAGE_PROFILE_RAW)
 	go tool cover -html $(COVERAGE_PROFILE_FILTERED) -o $(COVERAGE_PROFILE_FILTERED_HTML)
 	go tool cover -html $(COVERAGE_PROFILE_RAW) -o $(COVERAGE_PROFILE_RAW_HTML)
 

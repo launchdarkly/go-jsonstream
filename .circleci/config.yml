@@ -4,6 +4,10 @@ workflows:
   workflow:
     jobs:
       - go-test:
+          name: Go 1.17
+          docker-image: cimg/go:1.17
+          run-lint: true
+      - go-test:
           name: Go 1.16
           docker-image: cimg/go:1.16
       - go-test:
@@ -21,9 +25,7 @@ jobs:
         type: string
       run-lint:
         type: boolean
-        default: true
-        # We are currently linting in all Go versions, but this parameter lets us turn it off for some, in
-        # case we need to support more versions than a single version of golangci-lint is compatible with
+        default: false
       with-coverage:
         type: boolean
         default: false

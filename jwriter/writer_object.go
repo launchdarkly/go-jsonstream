@@ -1,6 +1,6 @@
 package jwriter
 
-// ObjectWriter is a decorator that writes values to an underlying Writer within the context of a
+// ObjectState is a decorator that writes values to an underlying Writer within the context of a
 // JSON object, adding property names and commas between values as appropriate.
 type ObjectState struct {
 	w             *Writer
