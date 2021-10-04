@@ -1,3 +1,4 @@
+//go:build !launchdarkly_easyjson
 // +build !launchdarkly_easyjson
 
 package jreader
@@ -378,7 +379,7 @@ func (r *tokenReader) consumeASCIILowercaseAlphabeticChars() int {
 	return n
 }
 
-func (r *tokenReader) readNumber(first byte) (float64, bool) {
+func (r *tokenReader) readNumber(first byte) (float64, bool) { //nolint:unparam
 	startPos := r.lastPos
 	isFloat := false
 	var ch byte
@@ -402,7 +403,7 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 		if !ok {
 			return 0, false
 		}
-		if ch == '+' || ch == '-' {
+		if ch == '+' || ch == '-' { //nolint:gocritic
 		} else if ch >= '0' && ch <= '9' {
 			r.unreadByte()
 		} else {
@@ -423,7 +424,7 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 			return 0, false
 		}
 		isFloat = true
-	} else {
+	} else { //nolint:gocritic
 		if ok {
 			r.unreadByte()
 		}
@@ -435,7 +436,7 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 		// at the existing bytes, but in our default implementation we can't use unsafe.
 		n, err := strconv.ParseFloat(string(chars), 64)
 		return n, err == nil
-	} else {
+	} else { //nolint:revive
 		n, ok := parseIntFromBytes(chars)
 		return float64(n), ok
 	}
@@ -504,7 +505,7 @@ func (r *tokenReader) readString() ([]byte, error) {
 			return nil, nil
 		}
 		return chars, nil
-	} else {
+	} else { //nolint:revive
 		pos := r.pos - 1
 		if pos <= startPos {
 			return nil, nil
@@ -526,7 +527,7 @@ func readHexChar(reader *bytes.Reader) (rune, bool) {
 	return rune(n), true
 }
 
-func (r *tokenReader) syntaxErrorOnLastToken(msg string) error {
+func (r *tokenReader) syntaxErrorOnLastToken(msg string) error { //nolint:unparam
 	return SyntaxError{Message: msg, Offset: r.LastPos()}
 }
 

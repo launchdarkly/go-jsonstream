@@ -33,7 +33,7 @@ const (
 	// BoolValue means the value is a boolean.
 	BoolValue ValueKind = iota
 
-	// NumberToken means the value is a number.
+	// NumberValue means the value is a number.
 	NumberValue ValueKind = iota
 
 	// StringValue means the value is a string.
