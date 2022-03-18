@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/v2/internal/commontest"
 )
 
 // This uses the framework defined in WriterTestSuite to exercise any TokenWriter implementation
