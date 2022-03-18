@@ -1,7 +1,7 @@
 package jreader
 
 import (
-	"gopkg.in/launchdarkly/go-jsonstream.v1/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/v2/internal/commontest"
 )
 
 // ExampleStruct is defined in another package, so we need to wrap it in our own type to define methods on it.
