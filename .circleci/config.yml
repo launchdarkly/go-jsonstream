@@ -6,10 +6,10 @@ workflows:
       - go-test:
           name: Go 1.18
           docker-image: cimg/go:1.18
-          run-lint: true
       - go-test:
           name: Go 1.17
           docker-image: cimg/go:1.17
+          run-lint: true  # golangci-lint doesn't yet work in Go 1.18
       - go-test:
           name: Go 1.16
           docker-image: cimg/go:1.16
