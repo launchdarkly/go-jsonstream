@@ -9,12 +9,12 @@ package jreader
 // iterating over the ArrayState, or to break out of the loop if String causes an error, because
 // the ArrayState's Next method will return false if the Reader has had any errors.
 //
-//     var values []string
-//     for arr := r.ArrayOrNull(); arr.Next(); {
-//         if s := r.String(); r.Error() == nil {
-//             values = append(values, s)
-//         }
-//     }
+//	var values []string
+//	for arr := r.ArrayOrNull(); arr.Next(); {
+//	    if s := r.String(); r.Error() == nil {
+//	        values = append(values, s)
+//	    }
+//	}
 type ArrayState struct {
 	r          *Reader
 	afterFirst bool

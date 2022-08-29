@@ -2,16 +2,15 @@ version: 2
 
 jobs:
   - docker:
-      image: golang:1.16-buster
+      image: golang:1.18-buster
     template:
       name: go
-    env:
-      LD_RELEASE_GO_IMPORT_PATH: gopkg.in/launchdarkly/go-jsonstream.v1
 
 branches:
+  - name: v3
   - name: v2
   - name: v1
 
 publications:
-  - url: https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1
+  - url: https://pkg.go.dev/github.com/launchdarkly/go-jsonstream/v3
     description: documentation

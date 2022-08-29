@@ -4,15 +4,12 @@ workflows:
   workflow:
     jobs:
       - go-test:
-          name: Go 1.18
-          docker-image: cimg/go:1.18
-      - go-test:
-          name: Go 1.17
-          docker-image: cimg/go:1.17
+          name: Go 1.19
+          docker-image: cimg/go:1.19
           run-lint: true  # golangci-lint doesn't yet work in Go 1.18
       - go-test:
-          name: Go 1.16
-          docker-image: cimg/go:1.16
+          name: Go 1.18
+          docker-image: cimg/go:1.18
       - benchmarks
 
 jobs:
@@ -89,7 +86,7 @@ jobs:
 
   benchmarks:
     docker:
-      - image: cimg/go:1.18
+      - image: cimg/go:1.19
         environment:
           CIRCLE_ARTIFACTS: /tmp/circle-artifacts
 

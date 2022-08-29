@@ -12,7 +12,7 @@ type ObjectState struct {
 // the property value. The return value is the same as the underlying Writer, so you can chain
 // method calls:
 //
-//     obj.Name("myBooleanProperty").Bool(true)
+//	obj.Name("myBooleanProperty").Bool(true)
 func (obj *ObjectState) Name(name string) *Writer {
 	if obj.w == nil || obj.w.err != nil {
 		return &noOpWriter
@@ -34,7 +34,7 @@ func (obj *ObjectState) Name(name string) *Writer {
 // a stub Writer that does not produce any output. This allows you to chain method calls without
 // having to use an if statement.
 //
-//     obj.Maybe(shouldWeIncludeTheProperty, "myBooleanProperty").Bool(true)
+//	obj.Maybe(shouldWeIncludeTheProperty, "myBooleanProperty").Bool(true)
 func (obj *ObjectState) Maybe(name string, shouldWrite bool) *Writer {
 	if obj.w == nil {
 		return &noOpWriter

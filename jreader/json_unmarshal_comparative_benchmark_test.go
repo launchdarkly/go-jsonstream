@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/launchdarkly/go-jsonstream/v2/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/v3/internal/commontest"
 )
 
 // These benchmarks perform equivalent actions to the ones in reader_benchmark_test.go, but using
