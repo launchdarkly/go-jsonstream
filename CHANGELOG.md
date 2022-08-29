@@ -2,6 +2,9 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [3.0.0] - 2022-08-29
+This release drops compatibility with Go 1.17 and below, and changes the import path from `github.com/launchdarkly/go-jsonstream/v2` to `github.com/launchdarkly/go-jsonstream/v3`. There are no other changes.
+
 ## [2.0.0] - 2022-03-18
 This release drops compatibility with Go 1.15 and below, and changes the import path from `gopkg.in/launchdarkly/go-jsonstream.v1` to `github.com/launchdarkly/go-jsonstream/v2`. There are no functional changes.
 
