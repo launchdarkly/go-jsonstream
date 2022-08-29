@@ -3,29 +3,29 @@
 // The high-level API for this package, Writer, is designed to facilitate writing custom JSON
 // marshaling logic concisely and reliably. Output is buffered in memory.
 //
-//     import (
-//         "gopkg.in/launchdarkly/jsonstream.v1/jreader"
-//     )
+//	import (
+//	    "gopkg.in/launchdarkly/jsonstream.v1/jreader"
+//	)
 //
-//     type myStruct struct {
-//         value int
-//     }
+//	type myStruct struct {
+//	    value int
+//	}
 //
-//     func (s *myStruct) ReadFromJSONReader(r *jreader.Reader) {
-//         // reading a JSON object structure like {"value":2}
-//         for obj := r.Object(); obj.Next; {
-//             if string(obj.Name()) == "value" {
-//                 s.value = r.Int()
-//             }
-//         }
-//     }
+//	func (s *myStruct) ReadFromJSONReader(r *jreader.Reader) {
+//	    // reading a JSON object structure like {"value":2}
+//	    for obj := r.Object(); obj.Next; {
+//	        if string(obj.Name()) == "value" {
+//	            s.value = r.Int()
+//	        }
+//	    }
+//	}
 //
-//     func ParseMyStructJSON() {
-//         var s myStruct
-//         r := jreader.NewReader([]byte(`{"value":2}`))
-//         s.ReadFromJSONReader(&r)
-//         fmt.Printf("%+v\n", s)
-//     }
+//	func ParseMyStructJSON() {
+//	    var s myStruct
+//	    r := jreader.NewReader([]byte(`{"value":2}`))
+//	    s.ReadFromJSONReader(&r)
+//	    fmt.Printf("%+v\n", s)
+//	}
 //
 // The underlying low-level token parsing mechanism has two available implementations. The default
 // implementation has no external dependencies. For interoperability with the easyjson library
@@ -39,12 +39,12 @@
 // EasyJSON jlexer.Lexer. This may be desirable in order to define common unmarshaling logic that
 // may be used with or without EasyJSON. For example:
 //
-//     import (
-//         "github.com/mailru/easyjson/jlexer"
-//     )
+//	import (
+//	    "github.com/mailru/easyjson/jlexer"
+//	)
 //
-//     func (s *myStruct) UnmarshalEasyJSON(lexer *jlexer.Lexer) {
-//         r := jreader.NewReaderFromEasyJSONLexer(lexer)
-//         s.ReadFromJSONReader(&r)
-//     }
+//	func (s *myStruct) UnmarshalEasyJSON(lexer *jlexer.Lexer) {
+//	    r := jreader.NewReaderFromEasyJSONLexer(lexer)
+//	    s.ReadFromJSONReader(&r)
+//	}
 package jreader

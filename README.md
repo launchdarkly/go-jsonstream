@@ -24,7 +24,7 @@ The unit tests for `go-jsonstream` define a common test suite that is run agains
 
 ## Supported Go versions
 
-This version of the project has been tested with Go 1.14 and higher.
+This version of the project requires a Go version of 1.18 or higher.
 
 ## Import path
 

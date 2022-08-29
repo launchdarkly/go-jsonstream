@@ -9,29 +9,29 @@ package jreader
 // result before iterating over the ObjectState, or to break out of the loop if String causes an
 // error, because the ObjectState's Next method will return false if the Reader has had any errors.
 //
-//     values := map[string]string
-//     for obj := r.ObjectOrNull(); obj.Next(); {
-//         key := string(obj.Name())
-//         if s := r.String(); r.Error() == nil {
-//             values[key] = s
-//         }
-//     }
+//	values := map[string]string
+//	for obj := r.ObjectOrNull(); obj.Next(); {
+//	    key := string(obj.Name())
+//	    if s := r.String(); r.Error() == nil {
+//	        values[key] = s
+//	    }
+//	}
 //
 // The next example reads an object with two expected property names, "a" and "b". Any unrecognized
 // properties are ignored.
 //
-//     var result struct {
-//         a int
-//         b int
-//     }
-//     for obj := r.ObjectOrNull(); obj.Next(); {
-//         switch string(obj.Name()) {
-//         case "a":
-//             result.a = r.Int()
-//         case "b":
-//             result.b = r.Int()
-//         }
-//     }
+//	var result struct {
+//	    a int
+//	    b int
+//	}
+//	for obj := r.ObjectOrNull(); obj.Next(); {
+//	    switch string(obj.Name()) {
+//	    case "a":
+//	        result.a = r.Int()
+//	    case "b":
+//	        result.b = r.Int()
+//	    }
+//	}
 //
 // If the schema requires certain properties to always be present, the WithRequiredProperties method is
 // a convenient way to enforce this.
@@ -50,10 +50,10 @@ type ObjectState struct {
 // This method returns a new, modified ObjectState. It should be called before the first time you
 // call Next. For instance:
 //
-//     requiredProps := []string{"key", "name"}
-//     for obj := reader.Object().WithRequiredProperties(requiredProps); obj.Next(); {
-//         switch string(obj.Name()) { ... }
-//     }
+//	requiredProps := []string{"key", "name"}
+//	for obj := reader.Object().WithRequiredProperties(requiredProps); obj.Next(); {
+//	    switch string(obj.Name()) { ... }
+//	}
 //
 // When the end of the object is reached (and Next() returns false), if one of the required
 // properties has not yet been seen, and no other error has occurred, the Reader's error state
