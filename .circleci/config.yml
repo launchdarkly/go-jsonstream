@@ -35,7 +35,7 @@ jobs:
       
       - run:
           name: install go-junit-report
-          command: go install github.com/jstemmer/go-junit-report@latest
+          command: go install github.com/jstemmer/go-junit-report/v2@v2.0.0
       
       - run:
           name: build (default implementation)

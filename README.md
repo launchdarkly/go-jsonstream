@@ -26,10 +26,6 @@ The unit tests for `go-jsonstream` define a common test suite that is run agains
 
 This version of the project requires a Go version of 1.18 or higher.
 
-## Import path
-
-The base import path is `gopkg.in/launchdarkly/go-jsonstream.v1`, not `github.com/launchdarkly/go-jsonstream`. This ensures that the package can be referenced not only as a Go module, but also by projects that use older tools like `dep` and `govendor`, because current releases of the LaunchDarkly Go SDK support either module or non-module usage. Future releases of this package may drop support for non-module usage.
-
 ## Contributing
 
 We encourage pull requests and other contributions from the community. Check out our [contributing guidelines](CONTRIBUTING.md) for instructions on how to contribute to this SDK.
