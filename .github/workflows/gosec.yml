@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - kparkinson/SEC-2664/add-gotsec-github-action
 
 permissions:
   id-token: write
