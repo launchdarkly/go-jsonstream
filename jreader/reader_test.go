@@ -414,3 +414,45 @@ func TestReaderSkipValue(t *testing.T) {
 		require.False(t, obj.Next())
 	})
 }
+
+func TestReaderSkipValueAllocations(t *testing.T) {
+	expectedAllocs := 0
+	if isEasyJSON {
+		// easyjson doesn't easily let us aggressively optimize out allocations.
+		expectedAllocs = 4
+	}
+
+	data := []byte(`{"a":1, "b":{"b1":"two", "b2":"three"}, "c":4}`)
+
+	allocs := testing.AllocsPerRun(1, func() {
+		r := NewReader(data)
+		obj := r.Object()
+		require.NoError(t, r.Error())
+
+		require.True(t, obj.Next())
+		// check name with an if check rather than require to avoid the
+		// string(obj.Name()) conversion escaping and resulting in an allocation
+		if string(obj.Name()) != "a" {
+			t.Fatalf(`expected %q == "a"`, string(obj.Name()))
+		}
+		val1 := r.Int()
+		require.NoError(t, r.Error())
+		require.Equal(t, 1, val1)
+
+		require.True(t, obj.Next())
+
+		require.True(t, obj.Next())
+		// check name with an if check rather than require to avoid the
+		// string(obj.Name()) conversion escaping and resulting in an allocation
+		if string(obj.Name()) != "c" {
+			t.Fatalf(`expected %q == "c"`, string(obj.Name()))
+		}
+		val3 := r.Int()
+		require.NoError(t, r.Error())
+		require.Equal(t, 4, val3)
+
+		require.False(t, obj.Next())
+	})
+
+	require.Equal(t, float64(expectedAllocs), allocs)
+}
