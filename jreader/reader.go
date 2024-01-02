@@ -346,11 +346,15 @@ func (r *Reader) tryObject(allowNull bool) ObjectState {
 // If there is a parsing error, the return value is the same as for a null and the Reader enters
 // a failed state, which you can detect with Error().
 func (r *Reader) Any() AnyValue {
+	return r.any(false)
+}
+
+func (r *Reader) any(ignoreString bool) AnyValue {
 	r.awaitingReadValue = false
 	if r.err != nil {
 		return AnyValue{}
 	}
-	v, err := r.tr.Any()
+	v, err := r.tr.any(ignoreString)
 	if err != nil {
 		r.err = err
 		return AnyValue{}
@@ -378,7 +382,7 @@ func (r *Reader) SkipValue() error {
 	if r.err != nil {
 		return r.err
 	}
-	v := r.Any()
+	v := r.any(true)
 	if v.Kind == ArrayValue {
 		for v.Array.Next() {
 		}

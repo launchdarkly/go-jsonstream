@@ -17,6 +17,8 @@ import (
 	"unicode/utf8"
 )
 
+const isEasyJSON = false
+
 var (
 	tokenNull  = []byte("null")  //nolint:gochecknoglobals
 	tokenTrue  = []byte("true")  //nolint:gochecknoglobals
@@ -254,6 +256,10 @@ func badArrayOrObjectItemMessage(isObject bool) string {
 // returns an error. Unlike Reader.Any(), for array and object values it does not create an
 // ArrayState or ObjectState.
 func (r *tokenReader) Any() (AnyValue, error) {
+	return r.any(false)
+}
+
+func (r *tokenReader) any(ignoreString bool) (AnyValue, error) {
 	t, err := r.next()
 	if err != nil {
 		return AnyValue{}, err
@@ -264,7 +270,11 @@ func (r *tokenReader) Any() (AnyValue, error) {
 	case numberToken:
 		return AnyValue{Kind: NumberValue, Number: t.numberValue}, nil
 	case stringToken:
-		return AnyValue{Kind: StringValue, String: string(t.stringValue)}, nil
+		var s string
+		if !ignoreString {
+			s = string(t.stringValue)
+		}
+		return AnyValue{Kind: StringValue, String: s}, nil
 	case delimiterToken:
 		if t.delimiter == '[' {
 			return AnyValue{Kind: ArrayValue}, nil
