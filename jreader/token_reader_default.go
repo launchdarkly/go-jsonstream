@@ -17,7 +17,9 @@ import (
 	"unicode/utf8"
 )
 
-const isEasyJSON = false
+// isEasyJSON is used in tests to e.g. expect different allocation behavior depending
+// on which backend is in use.
+const isEasyJSON = false //nolint:deadcode
 
 var (
 	tokenNull  = []byte("null")  //nolint:gochecknoglobals

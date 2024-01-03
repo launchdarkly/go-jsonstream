@@ -16,7 +16,9 @@ import (
 	"github.com/mailru/easyjson/jlexer"
 )
 
-const isEasyJSON = true
+// isEasyJSON is used in tests to e.g. expect different allocation behavior depending
+// on which backend is in use.
+const isEasyJSON = true //nolint:deadcode
 
 type tokenReader struct {
 	// We might be initialized either with a pointer to an existing Lexer, in which case we'll use that.
