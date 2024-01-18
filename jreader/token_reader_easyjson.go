@@ -165,6 +165,13 @@ func (tr *tokenReader) EndDelimiterOrComma(delim byte) (bool, error) {
 }
 
 func (tr *tokenReader) Any() (AnyValue, error) {
+	return tr.any(false)
+}
+
+// any is provided for compatability with the non-easyjson tokenReader API --
+// the parameter is ignored, because easyjson doesn't provide an easy way to
+// avoid a string heap allocation when calling lexer.Interface().
+func (tr *tokenReader) any(_ bool) (AnyValue, error) {
 	pLexer := tr.pLexer
 	if pLexer == nil {
 		pLexer = &tr.inlineLexer

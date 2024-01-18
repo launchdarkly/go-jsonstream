@@ -170,24 +170,6 @@ func (r *Reader) Float64OrNull() (float64, bool) {
 	return val, true
 }
 
-// String attempts to read a string value.
-//
-// If there is a parsing error, or the next value is not a string, the return value is "" and
-// the Reader enters a failed state, which you can detect with Error(). Types other than string
-// are never converted to strings.
-func (r *Reader) String() string {
-	r.awaitingReadValue = false
-	if r.err != nil {
-		return ""
-	}
-	val, err := r.tr.String()
-	if err != nil {
-		r.err = err
-		return ""
-	}
-	return val
-}
-
 // StringOrNull attempts to read either a string value or a null. In the case of a string, the
 // return values are (value, true); for a null, they are ("", false).
 //
@@ -335,11 +317,15 @@ func (r *Reader) tryObject(allowNull bool) ObjectState {
 // If there is a parsing error, the return value is the same as for a null and the Reader enters
 // a failed state, which you can detect with Error().
 func (r *Reader) Any() AnyValue {
+	return r.any(false)
+}
+
+func (r *Reader) any(ignoreString bool) AnyValue {
 	r.awaitingReadValue = false
 	if r.err != nil {
 		return AnyValue{}
 	}
-	v, err := r.tr.Any()
+	v, err := r.tr.any(ignoreString)
 	if err != nil {
 		r.err = err
 		return AnyValue{}
@@ -367,7 +353,7 @@ func (r *Reader) SkipValue() error {
 	if r.err != nil {
 		return r.err
 	}
-	v := r.Any()
+	v := r.any(true)
 	if v.Kind == ArrayValue {
 		for v.Array.Next() {
 		}

@@ -146,8 +146,17 @@ func (r *tokenReader) Number() (float64, error) {
 //
 // This and all other tokenReader methods skip transparently past whitespace between tokens.
 func (r *tokenReader) String() (string, error) {
+	stringValue, err := r.StringAsBytes()
+	return string(stringValue), err
+}
+
+// StringAsBytes requires that the next token is a JSON string, returning its value if successful (consuming
+// the token), or an error if the next token is anything other than a JSON string.
+//
+// This and all other tokenReader methods skip transparently past whitespace between tokens.
+func (r *tokenReader) StringAsBytes() ([]byte, error) {
 	t, err := r.consumeScalar(stringToken)
-	return string(t.stringValue), err
+	return t.stringValue, err
 }
 
 // PropertyName requires that the next token is a JSON string and the token after that is a colon,
@@ -245,6 +254,10 @@ func badArrayOrObjectItemMessage(isObject bool) string {
 // returns an error. Unlike Reader.Any(), for array and object values it does not create an
 // ArrayState or ObjectState.
 func (r *tokenReader) Any() (AnyValue, error) {
+	return r.any(false)
+}
+
+func (r *tokenReader) any(ignoreString bool) (AnyValue, error) {
 	t, err := r.next()
 	if err != nil {
 		return AnyValue{}, err
@@ -255,7 +268,11 @@ func (r *tokenReader) Any() (AnyValue, error) {
 	case numberToken:
 		return AnyValue{Kind: NumberValue, Number: t.numberValue}, nil
 	case stringToken:
-		return AnyValue{Kind: StringValue, String: string(t.stringValue)}, nil
+		var s string
+		if !ignoreString {
+			s = string(t.stringValue)
+		}
+		return AnyValue{Kind: StringValue, String: s}, nil
 	case delimiterToken:
 		if t.delimiter == '[' {
 			return AnyValue{Kind: ArrayValue}, nil
