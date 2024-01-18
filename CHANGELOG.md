@@ -2,6 +2,14 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [3.1.0] - 2024-01-18
+### Added:
+- Adds a new `StringAsBytes()` method, which can be used instead of the always-allocating `String()` method.
+
+
+### Changed:
+- GC improvement: in non-easyjson builds, when SkipValue encounters strings, allocation is eliminated. Thanks, @bobby-stripe!
+
 ## [3.0.0] - 2022-08-29
 This release drops compatibility with Go 1.17 and below, and changes the import path from `github.com/launchdarkly/go-jsonstream/v2` to `github.com/launchdarkly/go-jsonstream/v3`. There are no other changes.
 
