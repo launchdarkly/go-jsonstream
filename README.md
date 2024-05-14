@@ -1,6 +1,6 @@
 # LaunchDarkly Streaming JSON for Go
 
-[![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Documentation](https://img.shields.io/static/v1?label=go.dev&message=reference&color=00add8)](https://pkg.go.dev/gopkg.in/launchdarkly/go-jsonstream.v1)
+[![Circle CI](https://circleci.com/gh/launchdarkly/go-jsonstream.svg?style=shield)](https://circleci.com/gh/launchdarkly/go-jsonstream) [![Go Reference](https://pkg.go.dev/badge/github.com/launchdarkly/go-jsonstream/v3.svg)](https://pkg.go.dev/github.com/launchdarkly/go-jsonstream/v3)
 
 ## Overview
 
