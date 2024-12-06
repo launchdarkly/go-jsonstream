@@ -49,7 +49,7 @@ make benchmarks-easyjson
 
 ### Test coverage
 
-It is important to keep unit test coverage as close to 100% as possible in this project. You can view the latest code coverage report in CircleCI, as `coverage.html` and `coverage.txt` in the artifacts. You can also generate this information locally with `make test-coverage`.
+It is important to keep unit test coverage as close to 100% as possible in this project. You can generate this information locally with `make test-coverage`.
 
 The build will fail if there are any uncovered blocks of code, unless you explicitly add an override by placing a comment that starts with `// COVERAGE` somewhere within that block. Sometimes a gap in coverage is unavoidable, usually because the compiler requires us to provide a code path for some condition that in practice can't happen and can't be tested. Exclude these paths with a `// COVERAGE` comment.
 

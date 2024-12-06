@@ -1,0 +1,15 @@
+name: Run Release Please
+
+on:
+  push:
+    branches:
+      - v3
+  workflow_dispatch:
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          target-branch: v3
