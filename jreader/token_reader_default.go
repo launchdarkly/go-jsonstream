@@ -396,7 +396,7 @@ func (r *tokenReader) consumeASCIILowercaseAlphabeticChars() int {
 	return n
 }
 
-func (r *tokenReader) readNumber(first byte) (float64, bool) { //nolint:unparam
+func (r *tokenReader) readNumber(_ byte) (float64, bool) {
 	startPos := r.lastPos
 	isFloat := false
 	var ch byte
@@ -420,7 +420,7 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) { //nolint:unparam
 		if !ok {
 			return 0, false
 		}
-		if ch == '+' || ch == '-' { //nolint:gocritic
+		if ch == '+' || ch == '-' { //nolint:gocritic,revive
 		} else if ch >= '0' && ch <= '9' {
 			r.unreadByte()
 		} else {
