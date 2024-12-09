@@ -9,7 +9,7 @@
       "include-component-in-tag" : false,
       "exclude-paths": [
         ".github",
-        ".vscode",
+        ".vscode"
       ]
     }
   }
