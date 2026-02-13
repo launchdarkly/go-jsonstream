@@ -1,6 +1,6 @@
 module github.com/launchdarkly/go-jsonstream/v3
 
-go 1.18
+go 1.24
 
 require (
 	github.com/mailru/easyjson v0.7.6
