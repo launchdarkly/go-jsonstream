@@ -406,7 +406,7 @@ func (r *tokenReader) readNumber(_ byte) (float64, bool) {
 		if !ok {
 			break
 		}
-		if (ch < '0' || ch > '9') && !(ch == '.' && !isFloat) {
+		if (ch < '0' || ch > '9') && (ch != '.' || isFloat) {
 			break
 		}
 		if ch == '.' {
@@ -535,10 +535,10 @@ func readHexChar(reader *bytes.Reader) (rune, bool) {
 	var digits [4]byte
 	for i := 0; i < 4; i++ {
 		ch, err := reader.ReadByte()
-		if err != nil || !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) {
+		if err != nil || ((ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') && (ch < 'A' || ch > 'F')) {
 			return 0, false
 		}
-		digits[i] = ch
+		digits[i] = ch //nolint:gosec // G602 false positive: i is bounded by [0,4) matching the array size
 	}
 	n, _ := strconv.ParseUint(string(digits[:]), 16, 32)
 	return rune(n), true

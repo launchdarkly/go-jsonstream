@@ -1,26 +1,18 @@
+version: "2"
 run:
-  deadline: 120s
   tests: false
-
 linters:
   enable:
     - bodyclose
     - depguard
     - dupl
-    - errcheck
-    - goconst
     - gochecknoglobals
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     - godox
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
-    - govet
-    - ineffassign
     - lll
     - misspell
     - nakedret
@@ -28,23 +20,34 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
-    - unused
     - whitespace
-  fast: false
-
-linters-settings:
-  gofmt:
-    simplify: false
-  goimports:
-    local-prefixes: gopkg.in/launchdarkly,github.com/launchdarkly
-
+  exclusions:
+    generated: lax
+    paths:
+      - commontest
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-use-default: false
+  max-issues-per-linter: 1000
   max-same-issues: 1000
-  max-per-linter: 1000
-  exclude-dirs:
-    - commontest
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: false
+    goimports:
+      local-prefixes:
+        - gopkg.in/launchdarkly
+        - github.com/launchdarkly
+  exclusions:
+    generated: lax
+    paths:
+      - commontest
+      - third_party$
+      - builtin$
+      - examples$

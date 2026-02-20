@@ -354,10 +354,11 @@ func (r *Reader) SkipValue() error {
 		return r.err
 	}
 	v := r.any(true)
-	if v.Kind == ArrayValue {
+	switch v.Kind {
+	case ArrayValue:
 		for v.Array.Next() {
 		}
-	} else if v.Kind == ObjectValue {
+	case ObjectValue:
 		for v.Object.Next() {
 		}
 	}
