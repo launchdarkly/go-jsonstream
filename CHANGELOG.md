@@ -2,6 +2,14 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [3.1.1](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.0...v3.1.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* Bump gopkg.in/yaml.v3 from 3.0.0 to 3.0.1 ([#30](https://github.com/launchdarkly/go-jsonstream/issues/30)) ([261baa5](https://github.com/launchdarkly/go-jsonstream/commit/261baa546767497d371c4a20d873e685728b9ab6))
+* Bump minimum go to 1.24 ([#34](https://github.com/launchdarkly/go-jsonstream/issues/34)) ([4538575](https://github.com/launchdarkly/go-jsonstream/commit/45385758baecad4ec2dbc4e6b42a47ba1e92ff7f))
+
 ## [3.1.0] - 2024-01-18
 ### Added:
 - Adds a new `StringAsBytes()` method, which can be used instead of the always-allocating `String()` method.
