@@ -417,10 +417,6 @@ func TestReaderSkipValue(t *testing.T) {
 
 func TestReaderSkipValueAllocations(t *testing.T) {
 	expectedAllocs := 0
-	if isEasyJSON {
-		// easyjson doesn't easily let us aggressively optimize out allocations.
-		expectedAllocs = 4
-	}
 
 	data := []byte(`{"a":1, "b":{"b1":"two", "b2":"three"}, "c":4}`)
 

@@ -1,6 +1,3 @@
-//go:build !launchdarkly_easyjson
-// +build !launchdarkly_easyjson
-
 package jwriter
 
 import (
