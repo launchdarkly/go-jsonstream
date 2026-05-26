@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/launchdarkly/go-jsonstream/v3/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/v4/internal/commontest"
 )
 
 func BenchmarkWriteNull(b *testing.B) {

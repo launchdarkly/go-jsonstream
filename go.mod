@@ -1,4 +1,4 @@
-module github.com/launchdarkly/go-jsonstream/v3
+module github.com/launchdarkly/go-jsonstream/v4
 
 go 1.24
 
