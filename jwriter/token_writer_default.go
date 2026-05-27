@@ -1,6 +1,3 @@
-//go:build !launchdarkly_easyjson
-// +build !launchdarkly_easyjson
-
 package jwriter
 
 import (
@@ -10,11 +7,8 @@ import (
 	"unicode/utf8"
 )
 
-// This file defines the default implementation of the low-level JSON token writer. If the launchdarkly_easyjson
-// build tag is enabled, we use the easyjson adapter in token_writer_easyjson.go instead. These have the same
-// methods so the Writer code does not need to know which implementation we're using; however, we don't
-// actually define an interface for these, because calling the methods through an interface would limit
-// performance.
+// This file defines the low-level JSON token writer. We don't define an interface for these methods,
+// because calling them through an interface would limit performance.
 
 var (
 	tokenNull  = []byte("null")  //nolint:gochecknoglobals

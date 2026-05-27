@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/launchdarkly/go-jsonstream/v3/internal/commontest"
+	"github.com/launchdarkly/go-jsonstream/v4/internal/commontest"
 )
 
 // These benchmarks perform equivalent actions to the ones in reader_benchmark_test.go, but using
 // the default reflection-based mechanism from the json/encoding package, so we can see how much
-// less efficient that is than our default implementation and the easyjson implementation.
+// less efficient that is than our default implementation.
 
 func BenchmarkJSONUnmarshalComparatives(b *testing.B) {
 	b.Run("Null", benchmarkReadNullJSONUnmarshal)

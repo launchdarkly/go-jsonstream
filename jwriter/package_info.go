@@ -30,25 +30,4 @@
 //	    w := jwriter.NewStreamingWriter(resp, 1000)
 //	    myStruct.WriteToJSONWriter(&w)
 //	}
-//
-// The underlying low-level token writing mechanism has two available implementations. The default
-// implementation has no external dependencies. For interoperability with the easyjson library
-// (https://github.com/mailru/easyjson), there is also an implementation that delegates to the
-// easyjson streaming writer; this is enabled by setting the build tag "launchdarkly_easyjson".
-// Be aware that by default, easyjson uses Go's "unsafe" package (https://pkg.go.dev/unsafe),
-// which may not be available on all platforms.
-//
-// Setting the "launchdarkly_easyjson" tag also adds a new constructor function,
-// NewWriterFromEasyJSONWriter, allowing Writer-based code to send output directly to an
-// existing EasyJSON jwriter.Writer. This may be desirable in order to define common marshaling
-// logic that may be used with or without EasyJSON. For example:
-//
-//	import (
-//	    ej_jwriter "github.com/mailru/easyjson/jwriter"
-//	)
-//
-//	func (s myStruct) MarshalEasyJSON(w *ej_jwriter.Writer) {
-//	    ww := jwriter.NewWriterFromEasyJSONWriter(w)
-//	    s.WriteToJSONWriter(&ww)
-//	}
 package jwriter
