@@ -2,6 +2,17 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [4.0.0](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.1...v4.0.0) (2026-05-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove easyjson from go-jsonstream ([#39](https://github.com/launchdarkly/go-jsonstream/issues/39))
+
+### Features
+
+* remove easyjson from go-jsonstream ([#39](https://github.com/launchdarkly/go-jsonstream/issues/39)) ([5872e14](https://github.com/launchdarkly/go-jsonstream/commit/5872e14cbcff632639aa18d4d3a0e2cfa94fce9e))
+
 ## [3.1.1](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.0...v3.1.1) (2026-02-20)
 
 
