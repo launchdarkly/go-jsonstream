@@ -144,15 +144,17 @@ func TestReaderRejectsUnescapedControlCharsInString(t *testing.T) {
 
 func TestReaderCombinesSurrogatePairs(t *testing.T) {
 	// A \u-escaped UTF-16 surrogate pair must decode to a single code point rather than two
-	// replacement characters. 𝄞 is U+1D11E (musical G clef, 𝄞). This exercises the
-	// escape-combining branch specifically.
+	// replacement characters. These use raw string literals (backticks) so the literal
+	// backslash-u escape bytes reach the reader -- and readUnicodeEscape's combining branch --
+	// rather than being resolved to decoded text by the Go compiler.
 	for _, tc := range []struct {
 		input string
 		want  string
 	}{
-		{`"𝄞"`, "\U0001D11E"},
-		{`"a𝄞b"`, "a\U0001D11Eb"},
-		{`"😂"`, "\U0001F602"}, // face with tears of joy
+		{`"\uD834\uDD1E"`, "\U0001D11E"},      // musical G clef
+		{`"a\uD834\uDD1Eb"`, "a\U0001D11Eb"},  // with surrounding characters
+		{`"\uD83D\uDE02"`, "\U0001F602"},      // face with tears of joy
+		{`"\uDBFF\uDFFF"`, "\U0010FFFF"},      // maximum code point
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			var stdlib string
@@ -167,7 +169,8 @@ func TestReaderCombinesSurrogatePairs(t *testing.T) {
 		})
 	}
 
-	// The same pair encoded as literal UTF-8 bytes must also decode intact.
+	// The same code point encoded as literal UTF-8 bytes must also decode intact -- this goes
+	// through the plain ReadRune path rather than the escape path.
 	r := NewReader([]byte(`"a𝄞b"`))
 	got := r.String()
 	require.NoError(t, r.Error())
