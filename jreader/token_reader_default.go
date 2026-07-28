@@ -465,15 +465,30 @@ func (r *tokenReader) readNumber(first byte) (float64, bool) {
 
 	r.pos = i
 	chars := data[start:i]
-	if isFloat {
-		// Unfortunately, strconv.ParseFloat requires a string - there is no []byte equivalent. This means we can't
-		// avoid a heap allocation here. Easyjson works around this by creating an unsafe string that points directly
-		// at the existing bytes, but in our default implementation we can't use unsafe.
-		num, err := strconv.ParseFloat(string(chars), 64)
-		return num, err == nil
+	if !isFloat {
+		if num, ok := parseIntFromBytes(chars); ok {
+			return float64(num), true
+		}
+		// The integer literal overflows int64. Fall through to float parsing, which yields the
+		// same value encoding/json produces for magnitudes within float64 range (and rejects
+		// those beyond it, consistent with out-of-range float literals).
 	}
-	num, ok := parseIntFromBytes(chars)
-	return float64(num), ok
+	// Unfortunately, strconv.ParseFloat requires a string - there is no []byte equivalent. This means we can't
+	// avoid a heap allocation here. Easyjson works around this by creating an unsafe string that points directly
+	// at the existing bytes, but in our default implementation we can't use unsafe.
+	num, err := strconv.ParseFloat(string(chars), 64)
+	return num, err == nil
+}
+
+// beginEscapedCopy switches readString off its zero-copy fast path by copying the literal
+// prefix [startPos:endPos) that has been validated so far into a fresh buffer with headroom
+// for the decoded remainder.
+func beginEscapedCopy(data []byte, startPos, endPos int) []byte {
+	buf := make([]byte, endPos-startPos, endPos-startPos+20)
+	if endPos > startPos {
+		copy(buf, data[startPos:endPos])
+	}
+	return buf
 }
 
 func (r *tokenReader) readString() ([]byte, error) {
@@ -485,7 +500,7 @@ func (r *tokenReader) readString() ([]byte, error) {
 	_, _ = reader.Seek(int64(r.pos), io.SeekStart)
 
 	for {
-		ch, _, err := reader.ReadRune()
+		ch, size, err := reader.ReadRune()
 		if err != nil {
 			return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
 		}
@@ -497,17 +512,21 @@ func (r *tokenReader) readString() ([]byte, error) {
 			return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
 		}
 		if ch != '\\' {
-			if haveEscaped {
+			if ch == utf8.RuneError && size == 1 {
+				// An invalid UTF-8 byte. encoding/json substitutes the Unicode replacement
+				// character for these; do the same, which forces us off the zero-copy path.
+				if !haveEscaped {
+					chars = beginEscapedCopy(r.data, startPos, (r.len-reader.Len())-1)
+					haveEscaped = true
+				}
+				chars = appendRune(chars, utf8.RuneError)
+			} else if haveEscaped {
 				chars = appendRune(chars, ch)
 			}
 			continue
 		}
 		if !haveEscaped {
-			pos := (r.len - reader.Len()) - 1 // don't include the backslash we just read
-			chars = make([]byte, pos-startPos, pos-startPos+20)
-			if pos > startPos {
-				copy(chars, r.data[startPos:pos])
-			}
+			chars = beginEscapedCopy(r.data, startPos, (r.len-reader.Len())-1) // exclude the backslash just read
 			haveEscaped = true
 		}
 		ch, _, err = reader.ReadRune()
@@ -528,32 +547,9 @@ func (r *tokenReader) readString() ([]byte, error) {
 		case 't':
 			chars = appendRune(chars, '\t')
 		case 'u':
-			decoded, ok := readHexChar(&reader)
-			if !ok {
-				return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
-			}
-			if utf16.IsSurrogate(decoded) {
-				// A surrogate should be followed by a second \uXXXX escape forming a
-				// valid UTF-16 pair. If it is, combine them into one code point. If not,
-				// emit the replacement character and leave the following bytes to be
-				// parsed normally, matching encoding/json's lenient behavior.
-				mark := r.len - reader.Len()
-				combined := unicode.ReplacementChar
-				if b1, e1 := reader.ReadByte(); e1 == nil && b1 == '\\' {
-					if b2, e2 := reader.ReadByte(); e2 == nil && b2 == 'u' {
-						if low, lowOK := readHexChar(&reader); lowOK {
-							if pair := utf16.DecodeRune(decoded, low); pair != unicode.ReplacementChar {
-								combined = pair
-							}
-						}
-					}
-				}
-				if combined == unicode.ReplacementChar {
-					_, _ = reader.Seek(int64(mark), io.SeekStart)
-				}
-				chars = appendRune(chars, combined)
-			} else {
-				chars = appendRune(chars, decoded)
+			chars, err = r.readUnicodeEscape(&reader, chars)
+			if err != nil {
+				return nil, err
 			}
 		default:
 			return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
@@ -572,6 +568,35 @@ func (r *tokenReader) readString() ([]byte, error) {
 		}
 		return r.data[startPos:pos], nil
 	}
+}
+
+// readUnicodeEscape decodes a \u escape (the leading "\u" has already been consumed), combining
+// a UTF-16 surrogate pair into a single code point when the escape is a surrogate followed by a
+// valid pairing escape. A lone or invalid surrogate becomes the Unicode replacement character
+// with the following bytes left to be parsed normally, matching encoding/json.
+func (r *tokenReader) readUnicodeEscape(reader *bytes.Reader, chars []byte) ([]byte, error) {
+	decoded, ok := readHexChar(reader)
+	if !ok {
+		return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
+	}
+	if !utf16.IsSurrogate(decoded) {
+		return appendRune(chars, decoded), nil
+	}
+	mark := r.len - reader.Len()
+	combined := unicode.ReplacementChar
+	if b1, e1 := reader.ReadByte(); e1 == nil && b1 == '\\' {
+		if b2, e2 := reader.ReadByte(); e2 == nil && b2 == 'u' {
+			if low, lowOK := readHexChar(reader); lowOK {
+				if pair := utf16.DecodeRune(decoded, low); pair != unicode.ReplacementChar {
+					combined = pair
+				}
+			}
+		}
+	}
+	if combined == unicode.ReplacementChar {
+		_, _ = reader.Seek(int64(mark), io.SeekStart)
+	}
+	return appendRune(chars, combined), nil
 }
 
 func readHexChar(reader *bytes.Reader) (rune, bool) {
@@ -614,8 +639,14 @@ func parseIntFromBytes(chars []byte) (int64, bool) {
 			return 0, false
 		}
 	}
+	const maxInt64 = 1<<63 - 1
 	for p < len(chars) {
-		ret = ret*10 + int64(chars[p]-'0')
+		d := int64(chars[p] - '0')
+		// Signal overflow rather than silently wrapping; the caller falls back to float parsing.
+		if ret > (maxInt64-d)/10 {
+			return 0, false
+		}
+		ret = ret*10 + d
 		p++
 	}
 	if negate {

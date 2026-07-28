@@ -4,6 +4,7 @@ package jreader
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,8 +12,12 @@ import (
 )
 
 // These tests exercise RFC 8259 compliance of the default tokenizer. They are default-only
-// because the easyjson backend does not make all of the same accept/reject decisions. The
-// authority for whether an input is well-formed JSON is encoding/json's json.Valid.
+// because the easyjson backend does not make all of the same accept/reject decisions.
+//
+// The authority is encoding/json: json.Valid for grammar (accept/reject) and json.Unmarshal
+// for decoded values. One deliberate exception: numeric literals whose magnitude exceeds
+// float64's range (e.g. 1e400) are valid per the JSON grammar but cannot be represented, so --
+// like json.Unmarshal into a float64 or interface{} -- the reader rejects them.
 
 // rejectedByEncodingJSON is a sanity check so the "must reject" table cannot drift into
 // asserting that valid JSON is rejected.
@@ -105,6 +110,10 @@ func TestReaderAcceptsValidNumbers(t *testing.T) {
 		{"1.5e2", 150},
 		{"10", 10},
 		{"100", 100},
+		{"0e1", 0},
+		{"0.0e0", 0},
+		{"1e10", 1e10},
+		{"1E+2", 100},
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			require.True(t, json.Valid([]byte(tc.input)))
@@ -134,18 +143,35 @@ func TestReaderRejectsUnescapedControlCharsInString(t *testing.T) {
 }
 
 func TestReaderCombinesSurrogatePairs(t *testing.T) {
-	// A valid UTF-16 surrogate pair must decode to a single code point rather than two
-	// replacement characters. U+1D11E (musical G clef) is 𝄞.
-	r := NewReader([]byte(`"𝄞"`))
+	// A \u-escaped UTF-16 surrogate pair must decode to a single code point rather than two
+	// replacement characters. 𝄞 is U+1D11E (musical G clef, 𝄞). This exercises the
+	// escape-combining branch specifically.
+	for _, tc := range []struct {
+		input string
+		want  string
+	}{
+		{`"𝄞"`, "\U0001D11E"},
+		{`"a𝄞b"`, "a\U0001D11Eb"},
+		{`"😂"`, "\U0001F602"}, // face with tears of joy
+	} {
+		t.Run(tc.input, func(t *testing.T) {
+			var stdlib string
+			require.NoError(t, json.Unmarshal([]byte(tc.input), &stdlib))
+			assert.Equal(t, tc.want, stdlib, "test bug: expectation disagrees with encoding/json")
+
+			r := NewReader([]byte(tc.input))
+			got := r.String()
+			require.NoError(t, r.Error())
+			require.NoError(t, r.RequireEOF())
+			assert.Equal(t, tc.want, got)
+		})
+	}
+
+	// The same pair encoded as literal UTF-8 bytes must also decode intact.
+	r := NewReader([]byte(`"a𝄞b"`))
 	got := r.String()
 	require.NoError(t, r.Error())
 	require.NoError(t, r.RequireEOF())
-	assert.Equal(t, "\U0001D11E", got)
-
-	// Surrounding characters are preserved.
-	r = NewReader([]byte(`"a𝄞b"`))
-	got = r.String()
-	require.NoError(t, r.Error())
 	assert.Equal(t, "a\U0001D11Eb", got)
 }
 
@@ -171,6 +197,90 @@ func TestReaderReplacesInvalidSurrogates(t *testing.T) {
 			require.NoError(t, r.Error())
 			require.NoError(t, r.RequireEOF())
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestReaderRejectsControlCharInPropertyName(t *testing.T) {
+	// The control-char rule applies to property names, not just string values.
+	input := "{\"a\tb\":1}"
+	require.False(t, json.Valid([]byte(input)))
+
+	r := NewReader([]byte(input))
+	obj := r.Object()
+	obj.Next()
+	require.Error(t, r.Error())
+}
+
+func TestReaderSubstitutesInvalidUTF8(t *testing.T) {
+	// Raw invalid UTF-8 bytes inside a string decode to the Unicode replacement character,
+	// matching encoding/json, regardless of where an escape appears in the same string.
+	for _, tc := range []struct {
+		name  string
+		input []byte
+	}{
+		{"lone invalid byte", []byte("\"\xff\"")},
+		{"invalid byte then text", []byte("\"\xffab\"")},
+		{"text then invalid byte", []byte("\"ab\xff\"")},
+		{"invalid byte after escape", []byte("\"\\n\xff\"")},
+		{"invalid byte before escape", []byte("\"\xff\\n\"")},
+		{"CESU-8 encoded surrogate", []byte("\"\xed\xa0\x80\"")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.True(t, json.Valid(tc.input), "precondition: valid JSON grammar")
+			var want string
+			require.NoError(t, json.Unmarshal(tc.input, &want))
+
+			r := NewReader(tc.input)
+			got := r.String()
+			require.NoError(t, r.Error())
+			require.NoError(t, r.RequireEOF())
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func TestReaderLargeIntegersMatchEncodingJSON(t *testing.T) {
+	// Integer literals that overflow int64 but are within float64 range must decode to the same
+	// value encoding/json produces, not a wrapped-int64 garbage value.
+	for _, input := range []string{
+		"99999999999999999999",           // > 2^63
+		"12345678901234567890",           // > 2^63
+		"9223372036854775808",            // 2^63 exactly
+		"18446744073709551616",           // 2^64
+		"123456789012345678901234567890", // ~1.2e29, still within float64 range
+	} {
+		t.Run(input, func(t *testing.T) {
+			var want float64
+			require.NoError(t, json.Unmarshal([]byte(input), &want))
+
+			r := NewReader([]byte(input))
+			got := r.Float64()
+			require.NoError(t, r.Error())
+			require.NoError(t, r.RequireEOF())
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
+func TestReaderRejectsOutOfRangeNumbers(t *testing.T) {
+	// Numbers whose magnitude exceeds float64's range are valid JSON grammar but cannot be
+	// represented. encoding/json rejects them when decoding into a float64/interface{}, and so
+	// does the reader (a deliberate exception to strict json.Valid parity).
+	for _, input := range []string{
+		"1e400",
+		"9e999",
+		"-1e400",
+		"1E4000",                              // out-of-range float
+		"1" + strings.Repeat("0", 400),        // out-of-range integer literal
+	} {
+		t.Run(input, func(t *testing.T) {
+			require.True(t, json.Valid([]byte(input)), "precondition: valid JSON grammar")
+			var sink interface{}
+			require.Error(t, json.Unmarshal([]byte(input), &sink),
+				"precondition: encoding/json also rejects the value")
+
+			require.Error(t, parseWholeValue(input))
 		})
 	}
 }
