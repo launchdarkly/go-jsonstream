@@ -625,6 +625,10 @@ func (r *tokenReader) syntaxErrorOnNextToken(msg string) error {
 }
 
 // This is faster than creating a string to pass to strconv.Atoi.
+//
+// It returns ok == false when the literal's magnitude exceeds MaxInt64 (including int64's own
+// minimum, -2^63, whose magnitude is 2^63) so the caller can fall back to float parsing rather
+// than receive a silently wrapped value.
 func parseIntFromBytes(chars []byte) (int64, bool) {
 	negate := false
 	p := 0

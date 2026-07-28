@@ -182,10 +182,10 @@ func TestReaderReplacesInvalidSurrogates(t *testing.T) {
 		input string
 		want  string
 	}{
-		{`"\uD834"`, "�"},              // lone high surrogate
-		{`"\uDD1E"`, "�"},              // lone low surrogate
-		{`"\uD834x"`, "�x"},            // high surrogate followed by a normal char
-		{`"\uD834\uD834"`, "��"},  // high surrogate followed by another high surrogate
+		{`"\uD834"`, "�"},        // lone high surrogate
+		{`"\uDD1E"`, "�"},        // lone low surrogate
+		{`"\uD834x"`, "�x"},      // high surrogate followed by a normal char
+		{`"\uD834\uD834"`, "��"}, // high surrogate followed by another high surrogate
 	} {
 		t.Run(tc.input, func(t *testing.T) {
 			var stdlib string
@@ -271,8 +271,8 @@ func TestReaderRejectsOutOfRangeNumbers(t *testing.T) {
 		"1e400",
 		"9e999",
 		"-1e400",
-		"1E4000",                              // out-of-range float
-		"1" + strings.Repeat("0", 400),        // out-of-range integer literal
+		"1E4000",                       // out-of-range float
+		"1" + strings.Repeat("0", 400), // out-of-range integer literal
 	} {
 		t.Run(input, func(t *testing.T) {
 			require.True(t, json.Valid([]byte(input)), "precondition: valid JSON grammar")
