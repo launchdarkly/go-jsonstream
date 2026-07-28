@@ -14,6 +14,7 @@ import (
 	"io"
 	"strconv"
 	"unicode"
+	"unicode/utf16"
 	"unicode/utf8"
 )
 
@@ -373,7 +374,9 @@ func (r *tokenReader) skipWhitespaceAndReadByte() (byte, bool) {
 		if !ok {
 			return 0, false
 		}
-		if !unicode.IsSpace(rune(ch)) {
+		// JSON permits only these four whitespace characters between tokens. Any other
+		// character (including other Unicode spaces) is the start of a token.
+		if ch != ' ' && ch != '\t' && ch != '\n' && ch != '\r' {
 			r.lastPos = r.pos - 1
 			return ch, true
 		}
@@ -396,67 +399,81 @@ func (r *tokenReader) consumeASCIILowercaseAlphabeticChars() int {
 	return n
 }
 
-func (r *tokenReader) readNumber(_ byte) (float64, bool) {
-	startPos := r.lastPos
+func isDigit(b byte) bool {
+	return b >= '0' && b <= '9'
+}
+
+// consumeDigits advances past any decimal digits in data starting at index i, returning the
+// index of the first non-digit (or the end of the input).
+func consumeDigits(data []byte, i, n int) int {
+	for i < n && isDigit(data[i]) {
+		i++
+	}
+	return i
+}
+
+func (r *tokenReader) readNumber(first byte) (float64, bool) {
+	// The grammar is: [ - ] int [ frac ] [ exp ], where int is a single 0 or a 1-9 digit
+	// followed by more digits, frac is '.' followed by at least one digit, and exp is
+	// [eE][-+]? followed by at least one digit. We scan the input directly by index rather
+	// than through readByte/unreadByte, then leave r.pos pointing just past the number.
+	start := r.lastPos
+	data, n := r.data, r.len
+	i := start + 1 // the first byte has already been read
 	isFloat := false
-	var ch byte
-	var ok bool
-	for {
-		ch, ok = r.readByte()
-		if !ok {
-			break
+
+	// Optional minus sign, then the first digit of the integer part.
+	if first == '-' {
+		if i >= n || !isDigit(data[i]) {
+			return 0, false
 		}
-		if (ch < '0' || ch > '9') && (ch != '.' || isFloat) {
-			break
-		}
-		if ch == '.' {
-			isFloat = true
-		}
+		first = data[i]
+		i++
 	}
-	hasExponent := false
-	if ch == 'e' || ch == 'E' {
-		// exponent must match this regex: [eE][-+]?[0-9]+
-		ch, ok = r.readByte()
-		if !ok {
-			return 0, false
+
+	// Integer part.
+	if first == '0' {
+		if i < n && isDigit(data[i]) {
+			return 0, false // a leading zero cannot be followed by another digit
 		}
-		if ch == '+' || ch == '-' { //nolint:gocritic,revive
-		} else if ch >= '0' && ch <= '9' {
-			r.unreadByte()
-		} else {
-			return 0, false
-		}
-		for {
-			ch, ok = r.readByte()
-			if !ok {
-				break
-			}
-			if ch < '0' || ch > '9' {
-				r.unreadByte()
-				break
-			}
-			hasExponent = true
-		}
-		if !hasExponent {
-			return 0, false
-		}
+	} else {
+		i = consumeDigits(data, i, n)
+	}
+
+	// Fractional part: a decimal point must be followed by at least one digit.
+	if i < n && data[i] == '.' {
 		isFloat = true
-	} else { //nolint:gocritic
-		if ok {
-			r.unreadByte()
+		i++
+		if i >= n || !isDigit(data[i]) {
+			return 0, false
 		}
+		i = consumeDigits(data, i, n)
 	}
-	chars := r.data[startPos:r.pos]
+
+	// Exponent part: [eE][-+]? followed by at least one digit.
+	if i < n && (data[i] == 'e' || data[i] == 'E') {
+		isFloat = true
+		i++
+		if i < n && (data[i] == '+' || data[i] == '-') {
+			i++
+		}
+		if i >= n || !isDigit(data[i]) {
+			return 0, false
+		}
+		i = consumeDigits(data, i, n)
+	}
+
+	r.pos = i
+	chars := data[start:i]
 	if isFloat {
 		// Unfortunately, strconv.ParseFloat requires a string - there is no []byte equivalent. This means we can't
 		// avoid a heap allocation here. Easyjson works around this by creating an unsafe string that points directly
 		// at the existing bytes, but in our default implementation we can't use unsafe.
-		n, err := strconv.ParseFloat(string(chars), 64)
-		return n, err == nil
-	} else { //nolint:revive
-		n, ok := parseIntFromBytes(chars)
-		return float64(n), ok
+		num, err := strconv.ParseFloat(string(chars), 64)
+		return num, err == nil
 	}
+	num, ok := parseIntFromBytes(chars)
+	return float64(num), ok
 }
 
 func (r *tokenReader) readString() ([]byte, error) {
@@ -474,6 +491,10 @@ func (r *tokenReader) readString() ([]byte, error) {
 		}
 		if ch == '"' {
 			break
+		}
+		if ch < 0x20 {
+			// Control characters must be escaped inside a JSON string.
+			return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
 		}
 		if ch != '\\' {
 			if haveEscaped {
@@ -507,10 +528,32 @@ func (r *tokenReader) readString() ([]byte, error) {
 		case 't':
 			chars = appendRune(chars, '\t')
 		case 'u':
-			if ch, ok := readHexChar(&reader); ok {
-				chars = appendRune(chars, ch)
-			} else {
+			decoded, ok := readHexChar(&reader)
+			if !ok {
 				return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
+			}
+			if utf16.IsSurrogate(decoded) {
+				// A surrogate should be followed by a second \uXXXX escape forming a
+				// valid UTF-16 pair. If it is, combine them into one code point. If not,
+				// emit the replacement character and leave the following bytes to be
+				// parsed normally, matching encoding/json's lenient behavior.
+				mark := r.len - reader.Len()
+				combined := unicode.ReplacementChar
+				if b1, e1 := reader.ReadByte(); e1 == nil && b1 == '\\' {
+					if b2, e2 := reader.ReadByte(); e2 == nil && b2 == 'u' {
+						if low, lowOK := readHexChar(&reader); lowOK {
+							if pair := utf16.DecodeRune(decoded, low); pair != unicode.ReplacementChar {
+								combined = pair
+							}
+						}
+					}
+				}
+				if combined == unicode.ReplacementChar {
+					_, _ = reader.Seek(int64(mark), io.SeekStart)
+				}
+				chars = appendRune(chars, combined)
+			} else {
+				chars = appendRune(chars, decoded)
 			}
 		default:
 			return nil, r.syntaxErrorOnLastToken(errMsgInvalidString)
