@@ -183,6 +183,10 @@ func (tr *tokenReader) any(_ bool) (AnyValue, error) {
 	return value, nil
 }
 
+// Note: there is deliberately no RawValue implementation for this build variant. easyjson
+// support is planned for removal from this library, so Reader.RawValue is provided only by the
+// default tokenizer (it is declared in reader_default.go and does not exist under this tag).
+
 func (tr *tokenReader) lexerError() error {
 	if tr.pLexer == nil {
 		return tr.inlineLexer.Error()
