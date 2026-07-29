@@ -2,6 +2,18 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [3.2.0](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.1...v3.2.0) (2026-07-29)
+
+
+### Features
+
+* Add Reader.RawValue for capturing a value's raw bytes ([#45](https://github.com/launchdarkly/go-jsonstream/issues/45)) ([28aa1e3](https://github.com/launchdarkly/go-jsonstream/commit/28aa1e35cda3dd5c1dddcf92cb37bec0b8102f64))
+
+
+### Bug Fixes
+
+* Make the default backend RFC 8259 compliant ([#46](https://github.com/launchdarkly/go-jsonstream/issues/46)) ([a74e968](https://github.com/launchdarkly/go-jsonstream/commit/a74e9688b56c4f9f93ca5ff8268d96badcfd4166))
+
 ## [3.1.1](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.0...v3.1.1) (2026-02-20)
 
 
