@@ -5,6 +5,7 @@ package jreader
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"strconv"
 	"unicode"
@@ -84,6 +85,12 @@ func (r *tokenReader) EOF() bool {
 	}
 	r.unreadByte()
 	return false
+}
+
+// Offset returns the byte offset of the next byte the tokenizer will consume, or, if a token has
+// been read ahead and pushed back, the offset where that token starts.
+func (r *tokenReader) Offset() int {
+	return r.getPos()
 }
 
 // LastPos returns the byte offset within the input where we most recently started parsing a token.
@@ -279,6 +286,121 @@ func (r *tokenReader) any(ignoreString bool) (AnyValue, error) {
 			SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: r.lastPos}
 	default:
 		return AnyValue{Kind: NullValue}, nil
+	}
+}
+
+// RawValue consumes the next JSON value of any type and returns its raw bytes verbatim as a
+// slice of the original input. The value is validated--scalars and containers alike--so malformed
+// JSON produces an error rather than being returned. Scalars are fully validated by the
+// tokenizer, whose grammar is RFC 8259 compliant; containers are boundary-scanned and then
+// checked with encoding/json.Valid, since the boundary scan does not interpret the content in
+// between.
+//
+// This and all other tokenReader methods skip transparently past whitespace between tokens.
+func (r *tokenReader) RawValue() ([]byte, error) {
+	if r.hasUnread {
+		t := r.unreadToken
+		r.hasUnread = false
+		start := r.lastPos
+		if t.kind != delimiterToken {
+			// The token was already parsed and consumed from the input, so its bytes span from
+			// where it started to the current read position.
+			return r.rawScalar(start)
+		}
+		if t.delimiter == '{' || t.delimiter == '[' {
+			return r.rawContainer(t.delimiter, start)
+		}
+		return nil, SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: start}
+	}
+	b, ok := r.skipWhitespaceAndReadByte()
+	if !ok {
+		return nil, io.EOF
+	}
+	start := r.lastPos
+	if b == '{' || b == '[' {
+		return r.rawContainer(b, start)
+	}
+	r.unreadByte()
+	t, err := r.next()
+	if err != nil {
+		return nil, err
+	}
+	if t.kind == delimiterToken {
+		// The open delimiters were handled above, so this is a close delimiter, colon, or comma--
+		// not a value.
+		return nil, SyntaxError{Message: errMsgUnexpectedChar, Value: string(t.delimiter), Offset: start}
+	}
+	return r.rawScalar(start)
+}
+
+// rawScalar returns the already-tokenized scalar spanning from start to the current read
+// position. No further check is needed: the tokenizer's grammar is RFC 8259 compliant, so a
+// scalar it accepted is a valid standalone JSON value. (It is in one respect stricter than
+// encoding/json, having already rejected numbers whose magnitude overflows float64.)
+func (r *tokenReader) rawScalar(start int) ([]byte, error) {
+	return r.data[start:r.pos:r.pos], nil
+}
+
+// rawContainer scans from the already-consumed opening delimiter (open) to the matching close and
+// then validates the captured bytes with encoding/json. The boundary scan only tracks the outer
+// delimiter kind; json.Valid is the single source of truth for structural correctness.
+func (r *tokenReader) rawContainer(open byte, start int) ([]byte, error) {
+	if err := r.scanToContainerEnd(open); err != nil {
+		return nil, err
+	}
+	raw := r.data[start:r.pos:r.pos]
+	if !json.Valid(raw) {
+		return nil, SyntaxError{Message: errMsgInvalidValue, Offset: start}
+	}
+	return raw, nil
+}
+
+// scanToContainerEnd advances the read position past the end of the array or object value whose
+// opening delimiter (open) has already been consumed. It counts only the outer delimiter kind and
+// skips string literals, locating the value's byte boundary without validating nested structure;
+// the caller validates the captured bytes via json.Valid.
+func (r *tokenReader) scanToContainerEnd(open byte) error {
+	end := byte(']')
+	if open == '{' {
+		end = '}'
+	}
+	level := 1
+	for level > 0 {
+		b, ok := r.readByte()
+		if !ok {
+			return io.EOF
+		}
+		switch b {
+		case '"':
+			if err := r.scanStringEnd(); err != nil {
+				return err
+			}
+		case open:
+			level++
+		case end:
+			level--
+		}
+	}
+	return nil
+}
+
+// scanStringEnd advances the read position past the remainder of a string literal whose opening
+// quote mark has already been consumed, honoring backslash escapes. It does not interpret escape
+// sequences or validate the string's characters.
+func (r *tokenReader) scanStringEnd() error {
+	for {
+		b, ok := r.readByte()
+		if !ok {
+			return SyntaxError{Message: errMsgInvalidString, Offset: r.lastPos}
+		}
+		switch b {
+		case '\\':
+			if _, ok := r.readByte(); !ok {
+				return SyntaxError{Message: errMsgInvalidString, Offset: r.lastPos}
+			}
+		case '"':
+			return nil
+		}
 	}
 }
 
