@@ -7,6 +7,9 @@ import "io"
 // This function returns the struct by value (Writer, not *Writer). This avoids the overhead of a
 // heap allocation since, in typical usage, the Writer will not escape the scope in which it was
 // declared and can remain on the stack.
+//
+// Like a bytes.Buffer, the returned Writer must not be copied: it contains a preallocated
+// output buffer, so copies of it would write into the same memory.
 func NewWriter() Writer {
 	return Writer{tw: newTokenWriter()}
 }

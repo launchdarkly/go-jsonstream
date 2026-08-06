@@ -54,9 +54,15 @@ func (w *Writer) AddError(err error) {
 }
 
 // Flush writes any remaining in-memory output to the underlying io.Writer, if this is a streaming
-// writer created with NewStreamingWriter. It has no effect otherwise.
+// writer created with NewStreamingWriter. It has no effect otherwise. If the underlying io.Writer
+// has failed, either now or during an earlier automatic flush, Flush returns that error and the
+// Writer also records it, so Error() will report it as well.
 func (w *Writer) Flush() error {
-	return w.tw.Flush()
+	if err := w.tw.Flush(); err != nil {
+		w.AddError(err)
+		return err
+	}
+	return nil
 }
 
 // Null writes a JSON null value to the output.

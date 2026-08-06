@@ -72,3 +72,14 @@ func writeTestDataToBuffer(b *streamableBuffer) string {
 
 	return expected
 }
+
+func TestStreamableBufferGrow(t *testing.T) {
+	var b streamableBuffer
+	b.WriteString("abc")
+	b.Grow(100)
+	require.GreaterOrEqual(t, cap(b.Bytes())-len(b.Bytes()), 100)
+	require.Equal(t, "abc", string(b.Bytes()))
+	b.WriteString("def")
+	require.Equal(t, "abcdef", string(b.Bytes()))
+	require.Panics(t, func() { b.Grow(-1) })
+}
