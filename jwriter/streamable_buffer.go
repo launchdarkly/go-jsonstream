@@ -1,23 +1,34 @@
 package jwriter
 
 import (
-	"bytes"
 	"io"
+	"unicode/utf8"
 )
 
+// streamableBuffer is a byte buffer that can optionally flush its contents to an io.Writer
+// whenever they reach a chunk size. The zero value is a ready-to-use in-memory buffer.
+//
+// Output accumulates in a plain byte slice via append operations, which the compiler can
+// inline at call sites, rather than through bytes.Buffer method calls. For the same reason,
+// tokenWriter appends directly to the buf field in its hottest code paths; any code that
+// does so must call maybeFlush afterward so that streaming mode keeps flushing incrementally.
 type streamableBuffer struct {
-	buf       bytes.Buffer
+	buf       []byte
 	dest      io.Writer
 	destErr   error
 	chunkSize int
 }
 
 func (b *streamableBuffer) Bytes() []byte {
-	return b.buf.Bytes()
+	return b.buf
 }
 
 func (b *streamableBuffer) Grow(n int) {
-	b.buf.Grow(n)
+	if cap(b.buf)-len(b.buf) < n {
+		newBuf := make([]byte, len(b.buf), len(b.buf)+n)
+		copy(newBuf, b.buf)
+		b.buf = newBuf
+	}
 }
 
 func (b *streamableBuffer) SetStreamingWriter(w io.Writer, chunkSize int) {
@@ -27,12 +38,11 @@ func (b *streamableBuffer) SetStreamingWriter(w io.Writer, chunkSize int) {
 
 func (b *streamableBuffer) Flush() error {
 	if b.dest != nil {
-		if b.buf.Len() > 0 {
+		if len(b.buf) > 0 {
 			if b.destErr == nil {
-				data := b.buf.Bytes()
-				_, b.destErr = b.dest.Write(data)
+				_, b.destErr = b.dest.Write(b.buf)
 			}
-			b.buf.Reset()
+			b.buf = b.buf[:0]
 			return b.destErr
 		}
 	}
@@ -40,7 +50,7 @@ func (b *streamableBuffer) Flush() error {
 }
 
 func (b *streamableBuffer) maybeFlush() {
-	if b.dest != nil && b.buf.Len() >= b.chunkSize {
+	if b.dest != nil && len(b.buf) >= b.chunkSize {
 		_ = b.Flush()
 	}
 }
@@ -50,21 +60,21 @@ func (b *streamableBuffer) GetWriterError() error {
 }
 
 func (b *streamableBuffer) Write(data []byte) {
-	_, _ = b.buf.Write(data)
+	b.buf = append(b.buf, data...)
 	b.maybeFlush()
 }
 
 func (b *streamableBuffer) WriteByte(data byte) { //nolint:govet
-	_ = b.buf.WriteByte(data)
+	b.buf = append(b.buf, data)
 	b.maybeFlush()
 }
 
 func (b *streamableBuffer) WriteRune(ch rune) {
-	_, _ = b.buf.WriteRune(ch)
+	b.buf = utf8.AppendRune(b.buf, ch)
 	b.maybeFlush()
 }
 
 func (b *streamableBuffer) WriteString(s string) {
-	_, _ = b.buf.WriteString(s)
+	b.buf = append(b.buf, s...)
 	b.maybeFlush()
 }

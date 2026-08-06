@@ -20,7 +20,7 @@ func TestStreamingWriterWritesToTargetInChunks(t *testing.T) {
 	require.Equal(t, expected, buf.String())
 
 	arr.String("abc")
-	expected += `[true,"abc`
+	expected += `[true,"abc"`
 	require.Equal(t, expected, buf.String())
 
 	arr.Int(33)
@@ -30,13 +30,13 @@ func TestStreamingWriterWritesToTargetInChunks(t *testing.T) {
 	require.Equal(t, expected, buf.String())
 
 	arr.Float64(2.5)
-	expected += `",33,null,`
+	expected += `,33,null,2.5`
 	require.Equal(t, expected, buf.String())
 
 	arr.End()
 	require.Equal(t, expected, buf.String())
 
 	require.NoError(t, w.Flush())
-	expected += `2.5]`
+	expected += `]`
 	require.Equal(t, expected, buf.String())
 }
