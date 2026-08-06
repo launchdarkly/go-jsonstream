@@ -18,6 +18,10 @@ import (
 // when using NewStreamingWriter), or if an error is explicitly raised with AddError, the Writer
 // permanently enters a failed state and remembers that error; all subsequent method calls for
 // producing output will be ignored.
+//
+// Like a bytes.Buffer, a Writer must not be copied: copies share the same output buffer and
+// will corrupt each other's output. Use a pointer, or write through the states returned by
+// Array and Object.
 type Writer struct {
 	tw    tokenWriter
 	err   error

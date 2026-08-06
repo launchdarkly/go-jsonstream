@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
@@ -45,6 +46,8 @@ func TestStreamingWriterWritesToTargetInChunks(t *testing.T) {
 	require.Equal(t, expected, buf.String())
 }
 
+var errFailingDestination = errors.New("destination failed")
+
 type failingDestination struct {
 	failAfter int // number of successful writes before failures begin
 	writes    int
@@ -53,9 +56,21 @@ type failingDestination struct {
 func (f *failingDestination) Write(p []byte) (int, error) {
 	f.writes++
 	if f.writes > f.failAfter {
-		return 0, errors.New("destination failed")
+		return 0, errFailingDestination
 	}
 	return len(p), nil
+}
+
+// truncatingDestination reports success but consumes one byte less than it was given,
+// violating the io.Writer contract.
+type truncatingDestination struct{}
+
+func (truncatingDestination) Write(p []byte) (int, error) {
+	n := len(p) - 1
+	if n < 0 {
+		n = 0
+	}
+	return n, nil
 }
 
 func writeStreamingTestDocument(w *Writer) {
@@ -88,8 +103,12 @@ func TestStreamingWriterSurfacesDestinationError(t *testing.T) {
 			f := &failingDestination{failAfter: c.failAfter}
 			w := NewStreamingWriter(f, c.chunkSize)
 			writeStreamingTestDocument(&w)
-			require.Error(t, w.Flush())
-			require.Error(t, w.Error())
+			require.True(t, errors.Is(w.Flush(), errFailingDestination))
+			require.True(t, errors.Is(w.Error(), errFailingDestination))
+			// The destination must see exactly one failing write and nothing afterward, and
+			// the undeliverable data must have been discarded rather than retained.
+			require.Equal(t, c.failAfter+1, f.writes)
+			require.Empty(t, w.tw.buf.Bytes())
 		})
 	}
 }
@@ -146,4 +165,11 @@ func TestStreamingWriterBoundsBufferForEscapeHeavyStrings(t *testing.T) {
 	require.NoError(t, w.Flush())
 	require.Equal(t, `"`+strings.Repeat(`\n`, inputLen)+`"`, target.String())
 	require.LessOrEqual(t, cap(w.tw.buf.Bytes()), 4*chunkSize)
+}
+
+func TestStreamingWriterSurfacesShortWrite(t *testing.T) {
+	w := NewStreamingWriter(truncatingDestination{}, 10)
+	writeStreamingTestDocument(&w)
+	require.True(t, errors.Is(w.Flush(), io.ErrShortWrite))
+	require.True(t, errors.Is(w.Error(), io.ErrShortWrite))
 }

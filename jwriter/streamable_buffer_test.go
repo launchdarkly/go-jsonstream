@@ -2,6 +2,7 @@ package jwriter
 
 import (
 	"bytes"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,5 +82,8 @@ func TestStreamableBufferGrow(t *testing.T) {
 	require.Equal(t, "abc", string(b.Bytes()))
 	b.WriteString("def")
 	require.Equal(t, "abcdef", string(b.Bytes()))
-	require.Panics(t, func() { b.Grow(-1) })
+	require.PanicsWithValue(t, "jwriter: cannot grow buffer by a negative count",
+		func() { b.Grow(-1) })
+	require.PanicsWithValue(t, "jwriter: buffer too large",
+		func() { b.Grow(math.MaxInt) })
 }

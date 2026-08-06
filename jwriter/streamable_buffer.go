@@ -13,10 +13,17 @@ import (
 // tokenWriter appends directly to the buf field in its hottest code paths; any code that
 // does so must call maybeFlush afterward so that streaming mode keeps flushing incrementally.
 //
-// Code paths that append many bytes at a time should call reserve first: bare append grows
-// large slices by only ~1.25x, and the doubling policy in reserve keeps the number of
-// reallocations (and the total bytes copied) logarithmic for large outputs, matching the
-// amortization that bytes.Buffer provided.
+// Token-level writes — strings, numbers, and the multi-byte Write used for keyword and
+// raw tokens — reserve capacity before appending: bare append grows large slices by only
+// ~1.25x, and the at-least-doubling policy in reserve keeps the number of reallocations
+// (and the total bytes copied) logarithmic for large outputs. WriteByte and WriteRune
+// deliberately do not reserve: a capacity check on every single-byte delimiter write
+// measurably slows encoding, and a growth triggered by one is made rare by the reserves
+// on the token writes around it.
+//
+// The chunk-size check happens after a write, never during one, so a single write larger
+// than the chunk size — a raw JSON value, or a long escape-free string segment — is
+// buffered whole before it is flushed.
 type streamableBuffer struct {
 	buf       []byte
 	dest      io.Writer
@@ -29,7 +36,7 @@ func (b *streamableBuffer) Bytes() []byte {
 }
 
 // Grow ensures that the buffer has room for at least n more bytes, reallocating it if
-// necessary. It panics if n is negative.
+// necessary. It panics if n is negative or if the buffer cannot grow that large.
 func (b *streamableBuffer) Grow(n int) {
 	if n < 0 {
 		panic("jwriter: cannot grow buffer by a negative count")
@@ -37,10 +44,14 @@ func (b *streamableBuffer) Grow(n int) {
 	b.reserve(n)
 }
 
-// reserve ensures that the buffer has room for at least n more bytes, at least doubling the
-// capacity when it must reallocate so that repeated bulk appends remain amortized.
+// reserve ensures that the buffer has room for at least n more bytes (n must not be
+// negative), at least doubling the capacity when it must reallocate so that repeated
+// appends remain amortized.
 func (b *streamableBuffer) reserve(n int) {
 	if cap(b.buf)-len(b.buf) < n {
+		if len(b.buf)+n < 0 {
+			panic("jwriter: buffer too large")
+		}
 		newCap := 2 * cap(b.buf)
 		if newCap < len(b.buf)+n {
 			newCap = len(b.buf) + n
@@ -87,6 +98,7 @@ func (b *streamableBuffer) GetWriterError() error {
 }
 
 func (b *streamableBuffer) Write(data []byte) {
+	b.reserve(len(data))
 	b.buf = append(b.buf, data...)
 	b.maybeFlush()
 }

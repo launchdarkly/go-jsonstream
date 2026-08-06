@@ -62,12 +62,6 @@ func (tw *tokenWriter) Bytes() []byte {
 	return tw.buf.Bytes()
 }
 
-// Grow ensures that the internal buffer has room for the specified number of additional bytes,
-// reallocating it if necessary.
-func (tw *tokenWriter) Grow(n int) {
-	tw.buf.Grow(n)
-}
-
 // Flush writes any remaining in-memory output to the underlying Writer, if this is a streaming buffer
 // created with newStreamingTokenWriter. It has no effect otherwise.
 func (tw *tokenWriter) Flush() error {
@@ -126,7 +120,6 @@ func (tw *tokenWriter) String(value string) error {
 
 // Raw writes a preformatted chunk of JSON data.
 func (tw *tokenWriter) Raw(value json.RawMessage) error {
-	tw.buf.reserve(len(value))
 	tw.buf.Write(value)
 	return tw.buf.GetWriterError()
 }
@@ -152,8 +145,9 @@ func (tw *tokenWriter) writeQuotedString(s string) error {
 	// outside the ASCII range are copied through verbatim without being decoded, since this
 	// writer only ever escapes control characters, quotes, and backslashes.
 	//
-	// In-memory mode reserves the full encoded length up front (plus room for expansion when
-	// escapes are found). Streaming mode must not do that: it reserves nothing and instead
+	// In-memory mode reserves len(s)+2 up front — the exact encoded length when nothing needs
+	// escaping; escape expansion beyond that grows through append. Streaming mode must not
+	// reserve by input length: it reserves nothing and instead
 	// flushes at chunk boundaries as it scans, so that the buffer stays near the chunk size
 	// no matter how long or escape-heavy the input string is. A clean segment is still
 	// appended in one piece, so a segment longer than the chunk size overshoots it by that
