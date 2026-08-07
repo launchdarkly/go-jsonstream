@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 	"strconv"
-	"unicode/utf8"
 )
 
 // errNonFiniteNumber is returned when attempting to write a NaN or infinite floating-point
@@ -22,13 +21,30 @@ var (
 	tokenFalse = []byte("false") //nolint:gochecknoglobals
 )
 
+const hexDigits = "0123456789abcdef"
+
+// initialBufferCapacity is the buffer capacity preallocated by newTokenWriter. Paying for one
+// small allocation up front keeps the append growth ladder short for typical outputs; it is
+// the same minimum that bytes.Buffer uses.
+const initialBufferCapacity = 64
+
+// maxNumberLength is the longest text that Int or Float64 can produce for one value: a
+// float64 in Go's shortest 'g' representation needs at most 24 characters (for example
+// "-1.7976931348623157e+308"), and an int64 needs at most 20.
+const maxNumberLength = 24
+
 type tokenWriter struct {
-	buf       streamableBuffer
-	tempBytes [50]byte
+	buf streamableBuffer
 }
 
 func newTokenWriter() tokenWriter {
-	return tokenWriter{}
+	return newTokenWriterWithCapacity(initialBufferCapacity)
+}
+
+func newTokenWriterWithCapacity(capacity int) tokenWriter {
+	tw := tokenWriter{}
+	tw.buf.buf = make([]byte, 0, capacity)
+	return tw
 }
 
 func newStreamingTokenWriter(dest io.Writer, bufferSize int) tokenWriter {
@@ -44,12 +60,6 @@ func newStreamingTokenWriter(dest io.Writer, bufferSize int) tokenWriter {
 // so far.
 func (tw *tokenWriter) Bytes() []byte {
 	return tw.buf.Bytes()
-}
-
-// Grow expands the internal buffer by the specified number of bytes. It is the same as calling Grow
-// on a bytes.Buffer.
-func (tw *tokenWriter) Grow(n int) {
-	tw.buf.Grow(n)
 }
 
 // Flush writes any remaining in-memory output to the underlying Writer, if this is a streaming buffer
@@ -78,13 +88,9 @@ func (tw *tokenWriter) Bool(value bool) error {
 
 // Int writes an integer JSON number.
 func (tw *tokenWriter) Int(value int) error {
-	if value == 0 {
-		tw.buf.WriteByte('0')
-	} else {
-		out := tw.tempBytes[0:0]
-		out = strconv.AppendInt(out, int64(value), 10)
-		tw.buf.Write(out)
-	}
+	tw.buf.reserve(maxNumberLength)
+	tw.buf.buf = strconv.AppendInt(tw.buf.buf, int64(value), 10)
+	tw.buf.maybeFlush()
 	return tw.buf.GetWriterError()
 }
 
@@ -100,9 +106,9 @@ func (tw *tokenWriter) Float64(value float64) error {
 		if float64(i) == value {
 			return tw.Int(i)
 		}
-		out := tw.tempBytes[0:0]
-		out = strconv.AppendFloat(out, value, 'g', -1, 64)
-		tw.buf.Write(out)
+		tw.buf.reserve(maxNumberLength)
+		tw.buf.buf = strconv.AppendFloat(tw.buf.buf, value, 'g', -1, 64)
+		tw.buf.maybeFlush()
 	}
 	return tw.buf.GetWriterError()
 }
@@ -134,62 +140,64 @@ func (tw *tokenWriter) Delimiter(delimiter byte) error {
 }
 
 func (tw *tokenWriter) writeQuotedString(s string) error {
-	// This is basically the same logic used internally by json.Marshal
-	tw.buf.WriteByte('"')
+	// This is basically the same logic used internally by json.Marshal: scan for the next byte
+	// that requires escaping, and copy the whole clean segment before it in one append. Bytes
+	// outside the ASCII range are copied through verbatim without being decoded, since this
+	// writer only ever escapes control characters, quotes, and backslashes.
+	//
+	// In-memory mode reserves len(s)+2 up front — the exact encoded length when nothing needs
+	// escaping; escape expansion beyond that grows through append. Streaming mode must not
+	// reserve by input length: it reserves nothing and instead
+	// flushes at chunk boundaries as it scans, so that the buffer stays near the chunk size
+	// no matter how long or escape-heavy the input string is. A clean segment is still
+	// appended in one piece, so a segment longer than the chunk size overshoots it by that
+	// segment's length, which the buffer permits.
+	if tw.buf.dest == nil {
+		tw.buf.reserve(len(s) + 2)
+	}
+	// dst is a local copy of the buffer's slice header; it must be stored back before any
+	// buffer method runs (and reloaded after), or the flushed bytes would reappear.
+	dst := tw.buf.buf
+	dst = append(dst, '"')
 	start := 0
-	for i := 0; i < len(s); {
+	for i := 0; i < len(s); i++ {
 		aByte := s[i]
-		if aByte < ' ' || aByte == '"' || aByte == '\\' {
-			if i > start {
-				tw.buf.WriteString(s[start:i])
-			}
-			tw.writeEscapedChar(aByte)
-			i++
-			start = i
-		} else {
-			if aByte < utf8.RuneSelf { // single-byte character
-				i++
-			} else {
-				_, size := utf8.DecodeRuneInString(s[i:])
-				i += size
-			}
+		if aByte >= ' ' && aByte != '"' && aByte != '\\' {
+			continue
+		}
+		dst = append(dst, s[start:i]...)
+		dst = appendEscapedChar(dst, aByte)
+		start = i + 1
+		if tw.buf.dest != nil && len(dst) >= tw.buf.chunkSize {
+			tw.buf.buf = dst
+			tw.buf.maybeFlush()
+			dst = tw.buf.buf
 		}
 	}
-	if start < len(s) {
-		tw.buf.WriteString(s[start:])
-	}
-	tw.buf.WriteByte('"')
+	dst = append(dst, s[start:]...)
+	dst = append(dst, '"')
+	tw.buf.buf = dst
+	tw.buf.maybeFlush()
 	return tw.buf.GetWriterError()
 }
 
-func (tw *tokenWriter) writeEscapedChar(ch byte) {
-	out := tw.tempBytes[0:2]
-	out[0] = '\\'
+func appendEscapedChar(dst []byte, ch byte) []byte {
 	switch ch {
 	case '\b':
-		out[1] = 'b'
+		return append(dst, '\\', 'b')
 	case '\t':
-		out[1] = 't'
+		return append(dst, '\\', 't')
 	case '\n':
-		out[1] = 'n'
+		return append(dst, '\\', 'n')
 	case '\f':
-		out[1] = 'f'
+		return append(dst, '\\', 'f')
 	case '\r':
-		out[1] = 'r'
+		return append(dst, '\\', 'r')
 	case '"':
-		out[1] = '"'
+		return append(dst, '\\', '"')
 	case '\\':
-		out[1] = '\\'
+		return append(dst, '\\', '\\')
 	default:
-		out[1] = 'u'
-		out = append(out, '0')
-		out = append(out, '0')
-		hexChars := make([]byte, 0, 4)
-		hexChars = strconv.AppendInt(hexChars, int64(ch), 16)
-		if len(hexChars) < 2 {
-			out = append(out, '0')
-		}
-		out = append(out, hexChars...)
+		return append(dst, '\\', 'u', '0', '0', hexDigits[ch>>4], hexDigits[ch&0xf])
 	}
-	tw.buf.Write(out)
 }

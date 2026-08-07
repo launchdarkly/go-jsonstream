@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/launchdarkly/go-jsonstream/v4/internal/commontest"
 )
 
@@ -113,5 +115,39 @@ func (f writerValueTestFactory) Value(value commontest.AnyValue, variant commont
 		}
 
 		return w.Error()
+	}
+}
+
+func TestWriterReallocationsAreAmortized(t *testing.T) {
+	// Growing the output buffer must at least double its capacity when tokens are
+	// written, so the number of reallocations stays logarithmic in the output size.
+	// 5000 tokens of each kind produce far under 64 KiB of output, so a doubling ladder
+	// starting at 64 bytes can take at most ~11 steps; the bound below fails if a token
+	// path falls back to append's ~1.25x growth. (The bound has slack because delimiter
+	// writes do not reserve; see the streamableBuffer comment.)
+	const maxSteps = 14
+	writeToken := map[string]func(arr *ArrayState, i int){
+		"string": func(arr *ArrayState, i int) { arr.String("value\twith\n\"escaped chars\"") },
+		"int":    func(arr *ArrayState, i int) { arr.Int(123456789 + i) },
+		"bool":   func(arr *ArrayState, i int) { arr.Bool(i%2 == 0) },
+		"raw":    func(arr *ArrayState, i int) { arr.Raw(json.RawMessage(`{"k":[1,2,3]}`)) },
+	}
+	for kind, write := range writeToken {
+		t.Run(kind, func(t *testing.T) {
+			w := NewWriter()
+			arr := w.Array()
+			steps := 0
+			lastCap := -1
+			for i := 0; i < 5000; i++ {
+				write(&arr, i)
+				if c := cap(w.tw.buf.Bytes()); c != lastCap {
+					steps++
+					lastCap = c
+				}
+			}
+			arr.End()
+			require.NoError(t, w.Error())
+			require.LessOrEqual(t, steps, maxSteps)
+		})
 	}
 }
