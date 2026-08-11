@@ -29,6 +29,15 @@ func TestTokenReaderNumberEdgeCases(t *testing.T) {
 	}{
 		{name: "uppercase exponent marker", input: "2E3", want: 2000},
 		{name: "negative zero", input: "-0", want: 0},
+		{name: "leading zero accepted", input: "012", want: 12},
+		{name: "negative leading zero accepted", input: "-01", want: -1},
+		{name: "dot with no fractional digits accepted", input: "1.", want: 1},
+		{name: "no integer part accepted", input: "-.123", want: -0.123},
+		{name: "dot with no fractional digits before exponent accepted", input: "2.e3", want: 2000},
+		{name: "integer beyond int64 wraps", input: "9223372036854775808",
+			want: -9223372036854775808},
+		{name: "exponent overflowing float64 range rejected", input: "1e400",
+			wantErr: SyntaxError{Message: errMsgInvalidNumber, Offset: 0}},
 		{name: "exponent marker at end of input", input: "1e",
 			wantErr: SyntaxError{Message: errMsgInvalidNumber, Offset: 0}},
 		{name: "exponent marker followed by non-digit", input: "1ex",
@@ -67,6 +76,9 @@ func TestTokenReaderStringDecodingEdgeCases(t *testing.T) {
 		{name: "multi-byte character after an escape", input: "\"\\t\u00e9\"", want: "\t\u00e9"},
 		{name: "invalid UTF-8 byte after an escape becomes replacement character",
 			input: "\"\\t\xffx\"", want: "\t\ufffdx"},
+		{name: "raw NUL character passes through", input: "\"a\x00a\"", want: "a\x00a"},
+		{name: "raw tab passes through", input: "\"\t\"", want: "\t"},
+		{name: "raw newline passes through", input: "\"new\nline\"", want: "new\nline"},
 		{name: "unterminated with no escape", input: `"abc`,
 			wantErr: SyntaxError{Message: errMsgInvalidString, Offset: 0}},
 		{name: "unterminated after an escape", input: `"a\tb`,
@@ -210,6 +222,12 @@ func TestTokenReaderNextTokenErrors(t *testing.T) {
 			wantErr: SyntaxError{Message: errMsgInvalidNumber, Offset: 0}},
 		{name: "unterminated string", input: `"abc`,
 			wantErr: SyntaxError{Message: errMsgInvalidString, Offset: 0}},
+		// The offending byte is reported as a code point (string(byte) converts as a rune),
+		// so 0xEF renders as U+00EF.
+		{name: "UTF-8 byte order mark", input: "\xef\xbb\xbf{}",
+			wantErr: SyntaxError{Message: errMsgUnexpectedChar, Value: "ï", Offset: 0}},
+		{name: "UTF-16 byte order mark", input: "\xff\xfe{\x00}\x00",
+			wantErr: SyntaxError{Message: errMsgUnexpectedChar, Value: "ÿ", Offset: 0}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			tr := newTokenReader([]byte(tc.input))
@@ -217,6 +235,55 @@ func TestTokenReaderNextTokenErrors(t *testing.T) {
 			require.Equal(t, tc.wantErr, err)
 		})
 	}
+}
+
+func TestTokenReaderNonASCIIWhitespaceBytes(t *testing.T) {
+	// The whitespace table classifies each byte the way unicode.IsSpace classifies its
+	// Latin-1 code point, so these single bytes are skipped between tokens along with the
+	// standard space, tab, CR, and LF.
+	for _, tc := range []struct {
+		name string
+		ws   byte
+	}{
+		{name: "vertical tab", ws: 0x0B},
+		{name: "form feed", ws: 0x0C},
+		{name: "next line", ws: 0x85},
+		{name: "no-break space", ws: 0xA0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tr := newTokenReader([]byte{tc.ws, '5', tc.ws})
+			n, err := tr.Number()
+			require.NoError(t, err)
+			require.Equal(t, float64(5), n)
+			require.Equal(t, 1, tr.LastPos())
+			require.True(t, tr.EOF())
+		})
+	}
+}
+
+func TestTokenReaderDeepNestingNeedsNoPerDepthState(t *testing.T) {
+	// The tokenizer tracks no nesting state (matching brackets is the caller's job), so
+	// arbitrarily deep structures scan in constant space with no recursion.
+	const depth = 100_000
+	data := make([]byte, 0, 2*depth)
+	for i := 0; i < depth; i++ {
+		data = append(data, '[')
+	}
+	for i := 0; i < depth; i++ {
+		data = append(data, ']')
+	}
+	tr := newTokenReader(data)
+	for i := 0; i < depth; i++ {
+		found, err := tr.Delimiter('[')
+		require.NoError(t, err)
+		require.True(t, found)
+	}
+	for i := 0; i < depth; i++ {
+		isEnd, err := tr.EndDelimiterOrComma(']')
+		require.NoError(t, err)
+		require.True(t, isEnd)
+	}
+	require.True(t, tr.EOF())
 }
 
 func TestTokenReaderEOFWithPushedBackToken(t *testing.T) {
