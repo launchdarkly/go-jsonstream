@@ -23,6 +23,22 @@ var (
 
 const hexDigits = "0123456789abcdef"
 
+// plainStringChars marks the bytes that writeQuotedString copies into a JSON string
+// verbatim. Unlike the reader's equivalent table, bytes outside the ASCII range are
+// plain here: this writer never escapes them, so multi-byte characters pass through
+// without inspection. A single table lookup per byte is measurably faster than the
+// equivalent range and equality comparisons in this loop.
+var plainStringChars = makePlainStringChars() //nolint:gochecknoglobals
+
+func makePlainStringChars() (t [256]bool) {
+	for c := 0x20; c < 256; c++ {
+		if c != '"' && c != '\\' {
+			t[c] = true
+		}
+	}
+	return
+}
+
 // initialBufferCapacity is the buffer capacity preallocated by newTokenWriter. Paying for one
 // small allocation up front keeps the append growth ladder short for typical outputs; it is
 // the same minimum that bytes.Buffer uses.
@@ -159,7 +175,7 @@ func (tw *tokenWriter) writeQuotedString(s string) error {
 	start := 0
 	for i := 0; i < len(s); i++ {
 		aByte := s[i]
-		if aByte >= ' ' && aByte != '"' && aByte != '\\' {
+		if plainStringChars[aByte] {
 			continue
 		}
 		dst = append(dst, s[start:i]...)
