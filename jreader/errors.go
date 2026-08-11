@@ -13,7 +13,6 @@ const (
 	errMsgExpectedColon    = "expected colon after property name"
 	errMsgInvalidNumber    = "invalid numeric value"
 	errMsgInvalidString    = "unterminated or invalid string value"
-	errMsgInvalidValue     = "invalid JSON value"
 	errMsgUnexpectedChar   = "unexpected character"
 	errMsgUnexpectedSymbol = "unexpected symbol"
 )
