@@ -2,15 +2,9 @@ package jwriter
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
-	"math"
 	"strconv"
 )
-
-// errNonFiniteNumber is returned when attempting to write a NaN or infinite floating-point
-// value, which cannot be represented in JSON.
-var errNonFiniteNumber = errors.New("cannot encode NaN or infinite number as JSON")
 
 // This file defines the low-level JSON token writer. We don't define an interface for these methods,
 // because calling them through an interface would limit performance.
@@ -96,9 +90,6 @@ func (tw *tokenWriter) Int(value int) error {
 
 // Float64 writes a JSON number.
 func (tw *tokenWriter) Float64(value float64) error {
-	if math.IsNaN(value) || math.IsInf(value, 0) {
-		return errNonFiniteNumber
-	}
 	if value == 0 {
 		tw.buf.WriteByte('0')
 	} else {
