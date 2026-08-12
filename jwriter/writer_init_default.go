@@ -7,6 +7,9 @@ import "io"
 // This function returns the struct by value (Writer, not *Writer). This avoids the overhead of a
 // heap allocation since, in typical usage, the Writer will not escape the scope in which it was
 // declared and can remain on the stack.
+//
+// Like a bytes.Buffer, the returned Writer must not be copied: it contains a preallocated
+// output buffer, so copies of it would write into the same memory.
 func NewWriter() Writer {
 	return Writer{tw: newTokenWriter()}
 }
@@ -14,6 +17,7 @@ func NewWriter() Writer {
 // NewStreamingWriter creates a Writer that will buffer a limited amount of its output in memory
 // and dump the output to the specified io.Writer whenever the buffer is full. You should also
 // call Flush at the end of your output to ensure that any remaining buffered output is flushed.
+// It panics if bufferSize is negative.
 //
 // If the Writer returns an error at any point, it enters a failed state and will not try to
 // write any more data to the target.
@@ -21,6 +25,9 @@ func NewWriter() Writer {
 // This function returns the struct by value (Writer, not *Writer). This avoids the overhead of a
 // heap allocation since, in typical usage, the Writer will not escape the scope in which it was
 // declared and can remain on the stack.
+//
+// Like a bytes.Buffer, the returned Writer must not be copied: it contains a preallocated
+// output buffer, so copies of it would write into the same memory.
 func NewStreamingWriter(target io.Writer, bufferSize int) Writer {
 	return Writer{tw: newStreamingTokenWriter(target, bufferSize)}
 }

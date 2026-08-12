@@ -18,6 +18,10 @@ import (
 // when using NewStreamingWriter), or if an error is explicitly raised with AddError, the Writer
 // permanently enters a failed state and remembers that error; all subsequent method calls for
 // producing output will be ignored.
+//
+// Like a bytes.Buffer, a Writer must not be copied: copies share the same output buffer and
+// will corrupt each other's output. Use a pointer, or write through the states returned by
+// Array and Object.
 type Writer struct {
 	tw    tokenWriter
 	err   error
@@ -54,9 +58,15 @@ func (w *Writer) AddError(err error) {
 }
 
 // Flush writes any remaining in-memory output to the underlying io.Writer, if this is a streaming
-// writer created with NewStreamingWriter. It has no effect otherwise.
+// writer created with NewStreamingWriter. It has no effect otherwise. If the underlying io.Writer
+// has failed, either now or during an earlier automatic flush, Flush returns that error and the
+// Writer also records it, so Error() will report it as well.
 func (w *Writer) Flush() error {
-	return w.tw.Flush()
+	if err := w.tw.Flush(); err != nil {
+		w.AddError(err)
+		return err
+	}
+	return nil
 }
 
 // Null writes a JSON null value to the output.
