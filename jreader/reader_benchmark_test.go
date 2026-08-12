@@ -1,6 +1,7 @@
 package jreader
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/launchdarkly/go-jsonstream/v3/internal/commontest"
@@ -105,6 +106,39 @@ func BenchmarkReadArrayOfStrings(b *testing.B) {
 		if len(vals) < len(expected) {
 			b.FailNow()
 		}
+	}
+}
+
+// BenchmarkReadStringKinds covers the tokenizer's distinct string paths: zero-copy scanning of
+// plain ASCII at several lengths, multi-byte characters, and escape sequences that require
+// decoding into a new buffer.
+func BenchmarkReadStringKinds(b *testing.B) {
+	for _, tc := range []struct {
+		name  string
+		elem  string
+		count int
+	}{
+		{"shortASCII", "value123", 50},
+		{"mediumASCII", strings.Repeat("m", 40), 50},
+		{"longASCII", strings.Repeat("L", 400), 20},
+		{"multiByte", "café naïve \U0001D11E", 50},
+		{"escaped", `x\ty` + strings.Repeat("p", 20), 50},
+	} {
+		parts := make([]string, tc.count)
+		for i := range parts {
+			parts[i] = `"` + tc.elem + `"`
+		}
+		data := []byte("[" + strings.Join(parts, ",") + "]")
+		b.Run(tc.name, func(b *testing.B) {
+			b.SetBytes(int64(len(data)))
+			for i := 0; i < b.N; i++ {
+				r := NewReader(data)
+				for arr := r.Array(); arr.Next(); {
+					r.StringAsBytes()
+				}
+				failBenchmarkOnReaderError(b, &r)
+			}
+		})
 	}
 }
 
