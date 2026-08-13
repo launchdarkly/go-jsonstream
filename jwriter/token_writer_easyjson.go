@@ -32,6 +32,14 @@ func newTokenWriter() tokenWriter {
 	return tokenWriter{}
 }
 
+// newTokenWriterWithCapacity is equivalent to newTokenWriter, but pre-sizes the output
+// buffer for callers that know the approximate size of the document in advance.
+func newTokenWriterWithCapacity(capacity int) tokenWriter {
+	tw := tokenWriter{}
+	tw.inlineWriter.Buffer.EnsureSpace(capacity)
+	return tw
+}
+
 func newTokenWriterFromEasyjsonWriter(writer *ejwriter.Writer) tokenWriter {
 	return tokenWriter{pWriter: writer}
 }
