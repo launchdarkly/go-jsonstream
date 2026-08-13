@@ -2,6 +2,14 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [3.1.2](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.1...v3.1.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* Improve jreader throughput with a single-pass tokenizer ([#58](https://github.com/launchdarkly/go-jsonstream/issues/58)) ([78d0ac9](https://github.com/launchdarkly/go-jsonstream/commit/78d0ac92ec0f3a52f5f353529da13aeca93138d4))
+* Improve jwriter throughput with append-based buffer internals ([#56](https://github.com/launchdarkly/go-jsonstream/issues/56)) ([acb84f4](https://github.com/launchdarkly/go-jsonstream/commit/acb84f48fcfba1eee2f8754d6d281764c6826a52))
+
 ## [3.1.1](https://github.com/launchdarkly/go-jsonstream/compare/v3.1.0...v3.1.1) (2026-02-20)
 
 
