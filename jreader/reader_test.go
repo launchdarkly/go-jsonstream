@@ -420,7 +420,13 @@ func TestReaderSkipValueAllocations(t *testing.T) {
 
 	data := []byte(`{"a":1, "b":{"b1":"two", "b2":"three"}, "c":4}`)
 
-	allocs := testing.AllocsPerRun(1, func() {
+	// AllocsPerRun reads an allocation counter that applies to the whole process. An
+	// unrelated allocation on another goroutine, for example a timer or a finalizer, can
+	// increase the result of a single run. The average of 100 runs removes these errors,
+	// because AllocsPerRun divides the total allocation count by the run count and
+	// truncates the result. An allocation in the code under test occurs in each run, so
+	// the result stays 1 or more.
+	allocs := testing.AllocsPerRun(100, func() {
 		r := NewReader(data)
 		obj := r.Object()
 		require.NoError(t, r.Error())
