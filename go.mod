@@ -1,6 +1,6 @@
 module github.com/launchdarkly/go-jsonstream/v4
 
-go 1.24
+go 1.26
 
 require github.com/stretchr/testify v1.6.1
 
