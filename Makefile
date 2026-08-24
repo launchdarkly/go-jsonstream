@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VERSION=v2.9.0
+GOLANGCI_LINT_VERSION=v2.13.1
 
 LINTER=./bin/golangci-lint
 LINTER_VERSION_FILE=./bin/.golangci-lint-version-$(GOLANGCI_LINT_VERSION)
@@ -69,9 +69,15 @@ benchmark-allocs:
 	@echo "You should see some benchmark result output; if you do not, you may have misspelled the benchmark name/regex"
 	@GODEBUG=allocfreetrace=1 $(TEST_BINARY) -test.run=none -test.bench=$$BENCHMARK -test.benchmem -test.benchtime=1x 2>$(ALLOCATIONS_LOG)
 
+# Build the linter from source instead of downloading a release binary. A
+# release binary cannot analyze code that a newer Go toolchain compiles: it
+# panics on standard library files that require a language version newer than
+# the Go release that built it. CI tests the newest Go version, so a prebuilt
+# binary breaks on every Go release until upstream ships a build that uses it.
+# `go install` uses the toolchain of the job, so the versions always agree.
 $(LINTER_VERSION_FILE):
 	rm -f $(LINTER)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s $(GOLANGCI_LINT_VERSION)
+	GOBIN=$(CURDIR)/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	touch $(LINTER_VERSION_FILE)
 
 lint: $(LINTER_VERSION_FILE)
