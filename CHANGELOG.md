@@ -2,6 +2,13 @@
 
 All notable changes to the project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org).
 
+## [4.0.2](https://github.com/launchdarkly/go-jsonstream/compare/v4.0.1...v4.0.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* Bump minimum Go version to 1.26 ([#62](https://github.com/launchdarkly/go-jsonstream/issues/62)) ([329f4b1](https://github.com/launchdarkly/go-jsonstream/commit/329f4b177cb4a2d6d8f2e385fdf7991a7677fe13))
+
 ## [4.0.1](https://github.com/launchdarkly/go-jsonstream/compare/v4.0.0...v4.0.1) (2026-08-11)
 
 
